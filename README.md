@@ -2,4 +2,8 @@
 
 Proyecto para detectar cañas de azúcar en imágenes y extraer características morfológicas.
 
-Gregorio dice que estuve aqui
+<<<<<<< Updated upstream
+PYTHON Versión 10.0
+=======
+
+>>>>>>> Stashed changes

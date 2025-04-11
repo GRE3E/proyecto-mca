@@ -13,7 +13,7 @@
 1. Abre una terminal o línea de comandos
 2. Clona el repositorio usando Git:
    ```bash
-   git clone https://github.com/tu-usuario/deteccion_cana_azucar.git
+   git clone https://github.com/GR3E3/deteccion_cana_azucar.git
    cd deteccion_cana_azucar
    ```
 3. Instala las dependencias:

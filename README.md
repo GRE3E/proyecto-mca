@@ -8,28 +8,6 @@
 - Git instalado en tu sistema
 - Pip (gestor de paquetes de Python)
 
-### Iniciar el Proyecto
-1. Abre el símbolo del sistema (CMD) y navega al directorio del proyecto:
-   ```
-   cd ruta\al\proyecto
-   ```
-2. Crea un entorno virtual:
-   ```
-   python -m venv venv
-   ```
-3. Activa el entorno virtual:
-   ```
-   venv\Scripts\activate
-   ```
-4. Instala las dependencias:
-   ```
-   pip install -r requirements.txt
-   ```
-5. Ejecuta el proyecto principal:
-   ```
-   python src\Detencion.py
-   ```
-
 ### Clonar el Repositorio
 
 1. Abre una terminal o línea de comandos
@@ -37,6 +15,14 @@
    ```bash
    git clone https://github.com/tu-usuario/deteccion_cana_azucar.git
    cd deteccion_cana_azucar
+   ```
+3. Instala las dependencias:
+   ```
+   pip install -r requirements.txt
+   ```
+4. Ejecuta el proyecto principal:
+   ```
+   python src\Detencion.py
    ```
 
 ### Instalación de Dependencias

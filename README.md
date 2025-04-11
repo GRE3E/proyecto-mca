@@ -1,40 +1,64 @@
-# Cana Azúcar Detector
 
-Proyecto para detectar cañas de azúcar en imágenes y extraer características morfológicas.
+# Proyecto de Detección de Cañas de Azúcar
 
+## Configuración del Proyecto
 
-PYTHON Versión 10.0
+### Prerrequisitos
+- Python 3.10
+- Git instalado en tu sistema
+- Pip (gestor de paquetes de Python)
 
-# Proyecto de Cañas de Azúcar
+### Iniciar el Proyecto
+1. Abre el símbolo del sistema (CMD) y navega al directorio del proyecto:
+   ```
+   cd ruta\al\proyecto
+   ```
+2. Crea un entorno virtual:
+   ```
+   python -m venv venv
+   ```
+3. Activa el entorno virtual:
+   ```
+   venv\Scripts\activate
+   ```
+4. Instala las dependencias:
+   ```
+   pip install -r requirements.txt
+   ```
+5. Ejecuta el proyecto principal:
+   ```
+   python src\Detencion.py
+   ```
 
-Este proyecto tiene como objetivo desarrollar un programa que detecte cañas de azúcar en imágenes y extraiga sus características. El proyecto utiliza Python, OpenCV y otras librerías necesarias para preprocesar imágenes, entrenar un modelo y hacer predicciones.
+### Clonar el Repositorio
+
+1. Abre una terminal o línea de comandos
+2. Clona el repositorio usando Git:
+   ```bash
+   git clone https://github.com/tu-usuario/deteccion_cana_azucar.git
+   cd deteccion_cana_azucar
+   ```
+
+### Instalación de Dependencias
+
+1. Instala las dependencias:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
 ## Estructura del Proyecto
 
-La estructura del proyecto es la siguiente:
-
-- `/deteccion_cana_azucar`
-  - `/data`                  - Carpeta para los datos (imágenes)
-    - `/raw`                 - Imágenes originales sin procesar
-    - `/processed`           - Imágenes preprocesadas
-  - `/notebooks`             - Notebooks de Jupyter para exploración, análisis y pruebas
-  - `/src`                   - Código fuente del proyecto
-    - `/preprocessing`       - Scripts para preprocesamiento de imágenes
-    - `/feature_extraction` - Scripts para la extracción de características
-    - `/model`               - Scripts para la definición, entrenamiento y evaluación del modelo
-    - `/utils`               - Funciones auxiliares y utilitarias (por ejemplo, para visualización)
-  - `/tests`                 - Pruebas automatizadas para las funciones y modelos
-  - `/output`                - Resultados, modelos entrenados y archivos generados
-    - `/models`              - Modelos entrenados
-    - `/predictions`         - Predicciones realizadas con el modelo
-    - `/logs`                - Archivos de registro (si es necesario)
-  - `/web`                   - Código para la interfaz web
-    - `/static`              - Archivos estáticos como imágenes, CSS, JS
-    - `/templates`           - Plantillas HTML
-  - `requirements.txt`       - Lista de dependencias de Python
-  - `README.md`              - Descripción del proyecto, instrucciones, etc.
-  - `.gitignore`             - Archivos y carpetas que Git debe ignorar
-  - `config.py`              - Archivo de configuración (si es necesario)
+- `/src`                   - Código fuente principal
+  - `Detencion.py`         - Módulo de detección
+  - `interfaz.py`          - Interfaz de usuario
+  - `medidas.py`           - Módulo de mediciones
+- `/output`                - Resultados y archivos generados
+  - `/models`              - Modelos entrenados
+  - `/predictions`         - Predicciones realizadas
+  - `/logs`                - Archivos de registro
+- `requirements.txt`       - Lista de dependencias
+- `README.md`             - Este archivo
+- `.gitignore`            - Configuración de Git
 
 ### Descripción de las carpetas:
 

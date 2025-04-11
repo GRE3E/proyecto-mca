@@ -1,8 +1,3 @@
 # Ignorar datos pesados y resultados
-/data/
-/outputs/
-/models/*.pkl
-__pycache__/
-.ipynb_checkpoints/
-*.pyc
-.DS_Store
+/data/*
+!/data/.gitkeep

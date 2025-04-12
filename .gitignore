@@ -1,3 +1,6 @@
 # Ignorar datos pesados y resultados
 /data/*
 !/data/.gitkeep
+__pycache__/
+*.pyc
+

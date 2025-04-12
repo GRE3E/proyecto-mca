@@ -6,7 +6,7 @@ from utils import ordenar_puntos
 class ImageProcessor:
     """Clase para el procesamiento de imágenes."""
     
-    def roi(self, image, ancho_max=1920, alto_max=1080):
+    def roi(self, image, ancho_max=3840, alto_max=2160):
         """Extrae la región de interés de la imagen."""
         imagen_alineada = None
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -141,13 +141,7 @@ class ImageProcessor:
     
     def redimensionar_imagen(self, imagen):
         """Redimensiona la imagen para procesamiento manteniendo la relación de aspecto."""
-        max_dimension = 800
-        height, width = imagen.shape[:2]
-        scale = min(max_dimension/width, max_dimension/height)
-        if scale < 1:
-            new_width = int(width * scale)
-            new_height = int(height * scale)
-            imagen = cv2.resize(imagen, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        # No redimensionar la imagen, mantener tamaño original
         return imagen
     
     def procesar_imagen_completa(self, ruta_imagen):

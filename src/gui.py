@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from file_manager import FileManager
-from image_processor import ImageProcessor
+from img_proc.main_processor import ImageProcessor
 
 class DetectorBordesGUI:
     """Clase que maneja la interfaz gráfica del detector de bordes."""

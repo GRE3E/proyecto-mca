@@ -18,9 +18,9 @@ Este proyecto permite procesar imágenes para extraer regiones de interés, dete
    cd proyecto-mca
    ```
 3. Instalar dependencias:
-```
-pip install -r requirements.txt
-```
+   ```
+   pip install -r requirements.txt
+   ```
 
 ## Uso
 Ejecutar el script principal:

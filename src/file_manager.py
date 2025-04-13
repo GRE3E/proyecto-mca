@@ -52,8 +52,8 @@ class FileManager:
         
         return nuevo_nombre
     
-    def guardar_resultados(self, imagen_A4, imagen_bordes, imagen_mediciones, ruta_origen):
-        """Guarda las imágenes procesadas en el directorio processed con los formatos especificados."""
+    def guardar_resultados(self, imagen_A4, ruta_origen):
+        """Guarda la imagen procesada en el directorio processed con el formato especificado."""
         # Extraer el número del archivo original si es un archivo ca_X
         nombre_archivo = os.path.basename(ruta_origen)
         match = re.search(r'ca_([0-9]+)', nombre_archivo)
@@ -72,17 +72,4 @@ class FileManager:
         ruta_guardado = self.processed_dir / nombre_procesado
         cv2.imwrite(str(ruta_guardado), imagen_A4)
         
-        # Guardar imagen con bordes (monocromático)
-        nombre_bordes = f"monocromatico_bordes_ca_{numero}{extension}"
-        ruta_bordes = self.processed_dir / nombre_bordes
-        if isinstance(imagen_bordes, Image.Image):
-            imagen_bordes.save(str(ruta_bordes))
-        else:
-            cv2.imwrite(str(ruta_bordes), imagen_bordes)
-        
-        # Guardar imagen de mediciones
-        nombre_mediciones = f"mediccion_bordes_filtro_ca_{numero}{extension}"
-        ruta_mediciones = self.processed_dir / nombre_mediciones
-        cv2.imwrite(str(ruta_mediciones), imagen_mediciones)
-        
-        return [nombre_procesado, nombre_bordes, nombre_mediciones]
+        return nombre_procesado

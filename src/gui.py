@@ -71,16 +71,14 @@ class DetectorBordesGUI:
             resultado = self.image_processor.procesar_imagen_completa(self.imagen_path)
             
             # Guardar resultados
-            nombres_archivos = self.file_manager.guardar_resultados(
-                resultado['imagen_A4'], 
-                resultado['imagen_bordes'], 
-                resultado['imagen_mediciones'],
+            nombre_archivo = self.file_manager.guardar_resultados(
+                resultado['imagen_A4'],
                 self.imagen_path
             )
             
             # Actualizar interfaz
-            self.lbl_estado.config(text=f"Imágenes guardadas como:\n{nombres_archivos[0]}\n{nombres_archivos[1]}\n{nombres_archivos[2]}")
-            messagebox.showinfo("Éxito", "Imágenes procesadas y guardadas correctamente")
+            self.lbl_estado.config(text=f"Imagen guardada como:\n{nombre_archivo}")
+            messagebox.showinfo("Éxito", "Imagen procesada y guardada correctamente")
                 
         except Exception as e:
             messagebox.showerror("Error", f"Error al procesar la imagen: {str(e)}")

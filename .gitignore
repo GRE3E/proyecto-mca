@@ -3,4 +3,5 @@
 !/data/.gitkeep
 __pycache__/
 *.pyc
+src/img_proc/__pycache__/
 

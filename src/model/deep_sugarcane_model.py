@@ -68,10 +68,14 @@ def get_dataloaders(train_dir, val_dir, batch_size=16, img_size=320):
     val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=0)
     return train_loader, val_loader
 
-def train_model(train_dir, val_dir, epochs=30, batch_size=16, img_size=320, lr=1e-3, device=None):
+def train_model(train_dir, val_dir, model_path=None, epochs=30, batch_size=16, img_size=320, lr=1e-3, device=None):
     device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
     train_loader, val_loader = get_dataloaders(train_dir, val_dir, batch_size, img_size)
-    model = DeepSugarCaneNet(num_classes=2).to(device)
+    if model_path:
+        model = DeepSugarCaneNet(num_classes=2).to(device)
+        model.load_state_dict(torch.load(model_path, map_location=device))
+    else:
+        model = DeepSugarCaneNet(num_classes=2).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
     best_acc = 0

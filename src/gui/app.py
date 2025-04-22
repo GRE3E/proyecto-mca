@@ -35,14 +35,44 @@ class ModelTestApp:
         img_path = filedialog.askopenfilename(title="Selecciona una imagen", filetypes=filetypes)
         if img_path:
             try:
-                img = Image.open(img_path)
-                img.thumbnail((320, 320))
-                img_tk = ImageTk.PhotoImage(img)
+                # Importar el procesador de imágenes
+                from img_proc.main_processor import ImageProcessor
+                import cv2
+                import numpy as np
+                
+                # Procesar la imagen para reducir bordes
+                processor = ImageProcessor()
+                processed_result = processor.procesar_imagen_completa(img_path)
+                processed_img = processed_result['imagen_A4']
+                
+                # Convertir la imagen procesada a formato PIL para mostrarla
+                if isinstance(processed_img, np.ndarray):
+                    if len(processed_img.shape) == 3 and processed_img.shape[2] == 3:
+                        pil_img = Image.fromarray(cv2.cvtColor(processed_img, cv2.COLOR_BGR2RGB))
+                    else:
+                        pil_img = Image.fromarray(processed_img)
+                else:
+                    pil_img = processed_img
+                
+                # Redimensionar para mostrar en la interfaz
+                pil_img.thumbnail((320, 320))
+                img_tk = ImageTk.PhotoImage(pil_img)
                 self.image_label.configure(image=img_tk)
                 self.image_label.image = img_tk
-                pred = predict_image(img_path)
+                
+                # Guardar temporalmente la imagen procesada para enviarla al modelo
+                temp_path = os.path.join(os.path.dirname(img_path), "temp_processed.jpg")
+                pil_img.save(temp_path)
+                
+                # Enviar la imagen procesada al modelo para predicción
+                pred = predict_image(temp_path)
                 class_name = self.class_names[pred] if pred < len(self.class_names) else f"Clase {pred}"
                 self.result_label.config(text=f"Predicción: {class_name}")
+                
+                # Eliminar el archivo temporal
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                    
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo predecir la imagen:\n{e}")
 

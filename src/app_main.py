@@ -120,6 +120,9 @@ class MainInterface:
                 log_window.geometry("700x400")
                 log_text = tk.Text(log_window, wrap="word", state="disabled", bg="#222", fg="#0f0", font=("Consolas", 10))
                 log_text.pack(expand=True, fill="both")
+                # Botón para regresar al menú principal
+                btn_back = tk.Button(log_window, text="Regresar", command=lambda: self.regresar_menu(log_window), font=("Segoe UI", 12, "bold"), bg="#64748B", fg="#FFF")
+                btn_back.pack(pady=10)
                 log_window.update()
                 import threading, sys
                 class ConsoleRedirector:
@@ -471,3 +474,17 @@ if __name__ == "__main__":
     def iniciar(self):
         """Inicia el loop principal de la interfaz gráfica."""
         self.root.mainloop()
+
+    def regresar_menu(self, ventana=None):
+        if ventana:
+            ventana.destroy()
+        if hasattr(self, 'root') and self.root:
+            try:
+                self.root.destroy()
+            except:
+                pass
+        import sys
+        import os
+        import subprocess
+        main_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'app_main.py'))
+        subprocess.Popen([sys.executable, main_path])

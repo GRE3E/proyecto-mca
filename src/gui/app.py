@@ -25,6 +25,7 @@ class ModelTestApp:
         self.result_label.pack(pady=10)
         btn_select = tk.Button(self.root, text="Seleccionar imagen", command=self.select_image, font=("Segoe UI", 12, "bold"), bg="#1E40AF", fg="#FFF")
         btn_select.pack(pady=10)
+        btn_back.pack(pady=10)
         self.root.mainloop()
 
     def select_image(self):
@@ -75,6 +76,7 @@ class ModelTestApp:
                     
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo predecir la imagen:\n{e}")
+
 
 if __name__ == "__main__":
     ModelTestApp()

@@ -51,6 +51,9 @@ class DetectorBordesGUI:
         self.btn_procesar.pack(pady=10, fill='x')
         self.lbl_estado = ttk.Label(main_frame, text="", wraplength=560, foreground="#1E40AF", justify="center")
         self.lbl_estado.pack(pady=10)
+        # Botón Regresar siempre visible y activo
+        self.btn_regresar = ttk.Button(main_frame, text="Regresar", command=self.regresar_menu)
+        self.btn_regresar.pack(pady=10, fill='x')
         self.frame_vista_previa = ttk.Frame(main_frame, padding=10)
         self.frame_vista_previa.pack(pady=10, fill='both', expand=True)
         self.frame_vista_previa.pack_forget()
@@ -171,6 +174,9 @@ class DetectorBordesGUI:
         self.lbl_vista_previa.image = imagen_tk
         self.frame_vista_previa.pack(pady=10, fill='both', expand=True)
         self.lbl_estado.config(text="✅ Imagen procesada. Confirme para guardar.")
+        # Botón para regresar al menú principal
+        btn_back = tk.Button(self.frame_vista_previa, text="Regresar", command=self.regresar_menu, font=("Segoe UI", 12, "bold"), bg="#64748B", fg="#FFF")
+        btn_back.pack(pady=10)
 
     def limpiar_estado(self):
         self.imagen_path = None
@@ -191,3 +197,11 @@ class DetectorBordesGUI:
         self.cancelar_guardado()
         self.limpiar_estado()
         self.frame_vista_previa.pack_forget()
+
+    def regresar_menu(self):
+        self.root.destroy()
+        import sys
+        import os
+        import subprocess
+        main_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app_main.py'))
+        subprocess.Popen([sys.executable, main_path])

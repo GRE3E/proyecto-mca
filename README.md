@@ -11,10 +11,6 @@ Este proyecto implementa un sistema de clasificación de imágenes para identifi
 - Pillow
 - TensorFlow
 
-## Requisitos adicionales
-
-Este proyecto utiliza [Git Large File Storage (LFS)](https://git-lfs.github.com) para manejar archivos grandes (como modelos `.pth`).
-
 ## Instalación
 
 0. Instala Git LFS (solo una vez por máquina):
@@ -58,7 +54,6 @@ proyecto-mca/
     ├── model/           # Modelos de ML
     │   ├── inference.py
     │   ├── training.py
-    │   └── yolo_model.py
     ├── gui/             # Interfaces gráficas
     │   └── app.py
     ├── file_manager.py
@@ -77,16 +72,29 @@ Desde aquí puedes acceder a:
 - Reducción de bordes
 - Entrenamiento del modelo
 - Prueba del modelo
+- RE Entrenamiento
 
 **Nota:** El modelo entrenado `best_sugarcane_model.pth` se encuentra incluido en el repositorio en la carpeta `src/model/`. Puedes usarlo directamente para probar la funcionalidad desde el menú principal.
+
+### Flujo de Procesamiento de Imágenes
+1. **Reducción de bordes:** Antes de la predicción, las imágenes pasan por un proceso de reducción de bordes para mejorar la detección y clasificación.
+2. **Clasificación:** El modelo clasifica la imagen procesada como caña o no caña.
+3. **Visualización:** Puedes ver la imagen original y la procesada, y decidir si guardar el resultado.
+
 ### Entrenamiento del Modelo
-Desde el menú, selecciona "Entrenamiento Modelo". Se mostrará información sobre las rutas de los datos, cantidad de archivos y validación. El proceso maneja excepciones y muestra mensajes claros en caso de error.
+Desde el menú, selecciona "Entrenamiento Modelo". Se abrirá una ventana emergente donde se muestran los logs del proceso en tiempo real. El proceso maneja excepciones y muestra mensajes claros en caso de error.
+
+### RE Entrenamiento (Nuevo)
+Permite seleccionar un modelo existente mediante el gestor de archivos y reentrenarlo con nuevos datos. El progreso y los logs se muestran en una ventana emergente. Incluye botón de regreso para volver al menú principal en cualquier momento.
 
 ### Clasificación de Imágenes
-Selecciona "Probar modelo" en el menú. Podrás subir una imagen nueva y el sistema indicará si es o no caña de azúcar.
+Selecciona "Probar modelo" en el menú. Podrás subir una imagen nueva y el sistema indicará si es o no caña de azúcar. El flujo incluye la reducción de bordes antes de la predicción.
 
 ### Detector de Bordes
-Selecciona "Bordes" en el menú para acceder a la reducción de bordes usando los módulos de procesamiento de imágenes.
+Selecciona "Bordes" en el menú para acceder a la reducción de bordes usando los módulos de procesamiento de imágenes. Puedes visualizar la imagen original y la procesada, y guardar el resultado si lo deseas. Incluye botón de regreso siempre visible.
+
+### Visualización de Logs
+Tanto el entrenamiento como el reentrenamiento muestran los logs en ventanas emergentes, permitiendo un seguimiento detallado del proceso.
 
 ### Mantenimiento
 Para limpiar archivos de caché Python:

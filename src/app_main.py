@@ -9,7 +9,7 @@ class MainInterface:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Menú Principal - Proyecto MCA")
-        self.root.geometry("500x350")
+        self.root.geometry("1080x720")
         self.root.configure(bg="#F1F6F9")
         self.establecer_estilos()
         self.crear_interfaz()
@@ -32,6 +32,8 @@ class MainInterface:
         btn_entrenar.pack(fill="x", pady=10)
         btn_probar = ttk.Button(frame, text="Probar modelo", command=self.probar_modelo)
         btn_probar.pack(fill="x", pady=10)
+        btn_reentrenar = ttk.Button(frame, text="RE Entrenamiento", command=self.reentrenar_modelo)
+        btn_reentrenar.pack(fill="x", pady=10)
 
     def abrir_bordes(self):
         try:
@@ -48,6 +50,34 @@ class MainInterface:
             messagebox.showinfo("Entrenamiento", "Entrenamiento completado.")
         except Exception as e:
             messagebox.showerror("Error", f"Error durante el entrenamiento:\n{e}")
+
+    def obtener_modelos_disponibles(self):
+        modelos_dir = os.path.join(os.path.dirname(__file__), "model", )
+        modelos_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "model"))
+        if not os.path.exists(modelos_dir):
+            return []
+        modelos = [f for f in os.listdir(modelos_dir) if f.endswith(".pth")]
+        return modelos
+
+    def reentrenar_modelo(self):
+        try:
+            from model.deep_sugarcane_model import train_model
+            from tkinter import filedialog
+            modelos_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "model"))
+            modelos = self.obtener_modelos_disponibles()
+            if not modelos:
+                messagebox.showwarning("Advertencia", "No se encontraron modelos disponibles para reentrenar.")
+                return
+            ruta_modelo = filedialog.askopenfilename(
+                title="Seleccionar modelo para reentrenar",
+                initialdir=modelos_dir,
+                filetypes=[("Modelos PyTorch", "*.pth")]
+            )
+            if ruta_modelo:
+                train_model(train_dir="data/model_training/train", val_dir="data/model_training/val", model_path=ruta_modelo)
+                messagebox.showinfo("RE Entrenamiento", f"Modelo seleccionado reentrenado exitosamente.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error durante el reentrenamiento:\n{e}")
 
     def probar_modelo(self):
         try:

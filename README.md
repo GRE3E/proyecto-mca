@@ -10,7 +10,6 @@ Este proyecto implementa un sistema de clasificación de imágenes para identifi
 - NumPy
 - Pillow
 - TensorFlow
-- YOLOv8
 
 ## Requisitos adicionales
 

@@ -46,8 +46,49 @@ class MainInterface:
     def entrenar_modelo(self):
         try:
             from model.deep_sugarcane_model import train_model
-            train_model(train_dir="data/model_training/train", val_dir="data/model_training/val")
-            messagebox.showinfo("Entrenamiento", "Entrenamiento completado.")
+            log_window = tk.Toplevel(self.root)
+            log_window.title("Seguimiento del Entrenamiento")
+            log_window.geometry("700x400")
+            log_text = tk.Text(log_window, wrap="word", state="disabled", bg="#222", fg="#0f0", font=("Consolas", 10))
+            log_text.pack(expand=True, fill="both")
+            log_window.update()
+            import threading, sys
+            class ConsoleRedirector:
+                def __init__(self, text_widget):
+                    self.text_widget = text_widget
+                def write(self, msg):
+                    self.text_widget.configure(state="normal")
+                    self.text_widget.insert("end", msg)
+                    self.text_widget.see("end")
+                    self.text_widget.configure(state="disabled")
+                def flush(self):
+                    pass
+            original_stdout = sys.stdout
+            class Tee:
+                def __init__(self, *streams):
+                    self.streams = streams
+                def write(self, msg):
+                    for s in self.streams:
+                        s.write(msg)
+                def flush(self):
+                    for s in self.streams:
+                        s.flush()
+            sys.stdout = Tee(original_stdout, ConsoleRedirector(log_text))
+            def run_training():
+                try:
+                    train_model(train_dir="data/model_training/train", val_dir="data/model_training/val")
+                    log_text.configure(state="normal")
+                    log_text.insert("end", "\nEntrenamiento completado.\n")
+                    log_text.configure(state="disabled")
+                    messagebox.showinfo("Entrenamiento", "Entrenamiento completado.")
+                except Exception as e:
+                    log_text.configure(state="normal")
+                    log_text.insert("end", f"\nError durante el entrenamiento:\n{e}\n")
+                    log_text.configure(state="disabled")
+                    messagebox.showerror("Error", f"Error durante el entrenamiento:\n{e}")
+                finally:
+                    sys.stdout = original_stdout
+            threading.Thread(target=run_training, daemon=True).start()
         except Exception as e:
             messagebox.showerror("Error", f"Error durante el entrenamiento:\n{e}")
 
@@ -74,8 +115,49 @@ class MainInterface:
                 filetypes=[("Modelos PyTorch", "*.pth")]
             )
             if ruta_modelo:
-                train_model(train_dir="data/model_training/train", val_dir="data/model_training/val", model_path=ruta_modelo)
-                messagebox.showinfo("RE Entrenamiento", f"Modelo seleccionado reentrenado exitosamente.")
+                log_window = tk.Toplevel(self.root)
+                log_window.title("Seguimiento del RE Entrenamiento")
+                log_window.geometry("700x400")
+                log_text = tk.Text(log_window, wrap="word", state="disabled", bg="#222", fg="#0f0", font=("Consolas", 10))
+                log_text.pack(expand=True, fill="both")
+                log_window.update()
+                import threading, sys
+                class ConsoleRedirector:
+                    def __init__(self, text_widget):
+                        self.text_widget = text_widget
+                    def write(self, msg):
+                        self.text_widget.configure(state="normal")
+                        self.text_widget.insert("end", msg)
+                        self.text_widget.see("end")
+                        self.text_widget.configure(state="disabled")
+                    def flush(self):
+                        pass
+                original_stdout = sys.stdout
+                class Tee:
+                    def __init__(self, *streams):
+                        self.streams = streams
+                    def write(self, msg):
+                        for s in self.streams:
+                            s.write(msg)
+                    def flush(self):
+                        for s in self.streams:
+                            s.flush()
+                sys.stdout = Tee(original_stdout, ConsoleRedirector(log_text))
+                def run_retraining():
+                    try:
+                        train_model(train_dir="data/model_training/train", val_dir="data/model_training/val", model_path=ruta_modelo)
+                        log_text.configure(state="normal")
+                        log_text.insert("end", "\nRE Entrenamiento completado.\n")
+                        log_text.configure(state="disabled")
+                        messagebox.showinfo("RE Entrenamiento", f"Modelo seleccionado reentrenado exitosamente.")
+                    except Exception as e:
+                        log_text.configure(state="normal")
+                        log_text.insert("end", f"\nError durante el reentrenamiento:\n{e}\n")
+                        log_text.configure(state="disabled")
+                        messagebox.showerror("Error", f"Error durante el reentrenamiento:\n{e}")
+                    finally:
+                        sys.stdout = original_stdout
+                threading.Thread(target=run_retraining, daemon=True).start()
         except Exception as e:
             messagebox.showerror("Error", f"Error durante el reentrenamiento:\n{e}")
 

@@ -34,6 +34,8 @@ class MainInterface:
         btn_probar.pack(fill="x", pady=10)
         btn_reentrenar = ttk.Button(frame, text="RE Entrenamiento", command=self.reentrenar_modelo)
         btn_reentrenar.pack(fill="x", pady=10)
+        btn_mediciones = ttk.Button(frame, text="Mediciones", command=self.abrir_mediciones)
+        btn_mediciones.pack(fill="x", pady=10)
 
     def abrir_bordes(self):
         try:
@@ -178,6 +180,13 @@ class MainInterface:
                 messagebox.showerror("Error", "No se encontró la interfaz de prueba de modelo.")
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo abrir la interfaz de prueba de modelo:\n{e}")
+
+    def abrir_mediciones(self):
+        try:
+            from gui.mediciones_gui import MedicionesGUI
+            MedicionesGUI()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo abrir la interfaz de Mediciones:\n{e}")
 
 # Si se ejecuta este archivo directamente, mostrar la interfaz principal
 if __name__ == "__main__":

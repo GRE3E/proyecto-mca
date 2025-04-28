@@ -37,7 +37,25 @@ class DetectorBordesGUI:
         estilo.configure("Titulo.TLabel", font=("Segoe UI", 18, "bold"), background=fondo, foreground=color_primario)
 
     def crear_interfaz(self):
-        main_frame = ttk.Frame(self.root, padding=30)
+        # Canvas y scrollbar
+        canvas = tk.Canvas(self.root, bg="#F1F6F9", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(
+                scrollregion=canvas.bbox("all")
+            )
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        main_frame = ttk.Frame(scrollable_frame, padding=30)
         main_frame.pack(expand=True, fill='both')
         titulo = ttk.Label(main_frame, text="🔍 Detector de Bordes", style="Titulo.TLabel")
         titulo.pack(pady=(10, 25))

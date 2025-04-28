@@ -7,6 +7,7 @@ from torchvision import transforms, models
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
+import json
 data_yaml = os.path.join(os.path.dirname(os.path.dirname(__file__)), '..', 'dataset.yaml')
 
 class SugarCaneDataset(Dataset):
@@ -26,15 +27,36 @@ class SugarCaneDataset(Dataset):
             if os.path.isdir(class_path):
                 for fname in os.listdir(class_path):
                     if fname.lower().endswith(('jpg', 'jpeg', 'png')):
-                        self.samples.append((os.path.join(class_path, fname), label))
+                        img_path = os.path.join(class_path, fname)
+                        json_path = os.path.splitext(img_path)[0] + '.json'
+                        if os.path.exists(json_path):
+                            with open(json_path, 'r') as json_file:
+                                measures = json.load(json_file)['Mediciones']
+                                self.samples.append((img_path, label, measures))
     def __len__(self):
         return len(self.samples)
     def __getitem__(self, idx):
-        img_path, label = self.samples[idx]
+        img_path, label, measures = self.samples[idx]
         image = Image.open(img_path).convert('RGB')
         if self.transform:
             image = self.transform(image)
-        return image, label
+        # Procesar las medidas: tomar solo los primeros 4 valores float, rellenar con ceros si faltan
+        if isinstance(measures, list):
+            # Si es lista de dicts, extraer valores
+            if all(isinstance(m, dict) for m in measures):
+                vals = []
+                for m in measures:
+                    vals.extend([float(v) for v in m.values()])
+                vals = vals[:4]
+            else:
+                vals = [float(v) for v in measures][:4]
+        else:
+            vals = [float(measures)]
+        # Rellenar con ceros si hay menos de 4
+        while len(vals) < 4:
+            vals.append(0.0)
+        measures_tensor = torch.tensor(vals, dtype=torch.float32)
+        return image, label, measures_tensor
 
 class DeepSugarCaneNet(nn.Module):
     def __init__(self, num_classes=2):
@@ -194,10 +216,12 @@ def evaluate(model, loader, class_criterion, measure_criterion, device):
 def plot_metrics(history, save_dir=None):
     plt.figure(figsize=(12,5))
     plt.subplot(1,2,1)
-    plt.plot(history['train_loss'], label='Train Loss')
-    plt.plot(history['val_loss'], label='Val Loss')
+    plt.plot(history['train_class_loss'], label='Train Class Loss')
+    plt.plot(history['val_class_loss'], label='Val Class Loss')
+    plt.plot(history['train_measure_loss'], label='Train Measure Loss')
+    plt.plot(history['val_measure_loss'], label='Val Measure Loss')
     plt.legend()
-    plt.title('Loss')
+    plt.title('Losses')
     plt.subplot(1,2,2)
     plt.plot(history['val_acc'], label='Val Acc')
     plt.legend()

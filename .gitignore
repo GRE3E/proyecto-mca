@@ -11,4 +11,4 @@ runs/
 *.log
 .DS_Store
 Thumbs.db
-
+src/model/best_sugarcane_model.pth

@@ -192,11 +192,47 @@ class DeepSugarCaneNet(nn.Module):
         return class_output, height_output, measurements_output
 
 def normalize_pixel_to_cm(image, pixel_to_cm_ratio=10.0):
-    """Normaliza las dimensiones de la imagen considerando la relación píxel-cm."""
-    # Si necesitas escalar la imagen o ajustar dimensiones basado en la relación
-    # Este es un ejemplo básico que podría expandirse según necesidades específicas
-    return image  # Por ahora, sólo retornamos la imagen original
-
+    """
+    Normaliza las dimensiones de la imagen considerando la relación píxel-cm.
+    
+    Args:
+        image: Imagen a normalizar (array numpy o PIL Image)
+        pixel_to_cm_ratio: Relación píxeles/cm (por defecto: 10.0)
+    
+    Returns:
+        La imagen normalizada y el factor de escala aplicado
+    """
+    import numpy as np
+    from PIL import Image
+    
+    # Convertir a numpy array si es una imagen PIL
+    if isinstance(image, Image.Image):
+        np_image = np.array(image)
+    else:
+        np_image = image.copy()
+    
+    # Dimensiones originales de la imagen
+    if len(np_image.shape) == 3:
+        height, width, _ = np_image.shape
+    else:
+        height, width = np_image.shape
+    
+    # Calcular ancho y alto en cm basado en la relación pixel_to_cm_ratio
+    width_cm = width / pixel_to_cm_ratio
+    height_cm = height / pixel_to_cm_ratio
+    
+    # Si necesitáramos escalar la imagen a un tamaño estándar en cm,
+    # aquí calcularíamos el factor de escala y redimensionaríamos
+    # Por ahora, solo pasamos los metadatos junto con la imagen original
+    
+    return {
+        'image': np_image,
+        'width_px': width,
+        'height_px': height,
+        'width_cm': width_cm,
+        'height_cm': height_cm,
+        'px_to_cm_ratio': pixel_to_cm_ratio
+    }
 def get_dataloaders(train_dir, val_dir, batch_size=16, img_size=320, max_measurements=15):
     transform = transforms.Compose([
         transforms.Resize((img_size, img_size)),
@@ -493,8 +529,20 @@ def plot_metrics(history, save_dir=None):
     
     plt.close()
 
-def predict_image(image_path, model_path=None, device=None, max_measurements=15):
-    """Predice si una imagen es de caña de azúcar y sus características."""
+def predict_image(image_path, model_path=None, device=None, max_measurements=15, pixel_to_cm_ratio=10.0):
+    """
+    Predice si una imagen es de caña de azúcar y sus características, aplicando la relación píxel-cm.
+    
+    Args:
+        image_path: Ruta de la imagen a analizar
+        model_path: Ruta al modelo preentrenado (opcional)
+        device: Dispositivo de computación ('cuda' o 'cpu')
+        max_measurements: Número máximo de mediciones a considerar
+        pixel_to_cm_ratio: Relación píxeles/cm (por defecto: 10.0)
+        
+    Returns:
+        Diccionario con los resultados de la predicción y mediciones
+    """
     device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
     
     # Cargar modelo
@@ -516,11 +564,17 @@ def predict_image(image_path, model_path=None, device=None, max_measurements=15)
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
     
-    image = Image.open(image_path).convert('RGB')
-    image = transform(image).unsqueeze(0).to(device)
+    # Normalizar imagen con la relación píxel-cm
+    image_info = normalize_pixel_to_cm(Image.open(image_path).convert('RGB'), pixel_to_cm_ratio)
+    original_ratio = pixel_to_cm_ratio / 10.0  # Factor de ajuste respecto al entrenamiento
+    
+    # Transformar para la red
+    image_tensor = transform(Image.fromarray(image_info['image']) if isinstance(image_info['image'], np.ndarray) 
+                           else Image.open(image_path).convert('RGB'))
+    image_tensor = image_tensor.unsqueeze(0).to(device)
     
     with torch.no_grad():
-        class_outputs, height_outputs, measure_outputs = model(image)
+        class_outputs, height_outputs, measure_outputs = model(image_tensor)
         probabilities = torch.nn.functional.softmax(class_outputs, dim=1)
         confidence, pred_class = torch.max(probabilities, 1)
         
@@ -530,8 +584,12 @@ def predict_image(image_path, model_path=None, device=None, max_measurements=15)
         
         # Si es una caña de azúcar (clase 1), procesar las medidas
         if es_cana:
-            # Obtener medidas de altura
+            # Obtener medidas de altura y ajustar según la relación píxel-cm
             alto_recto, alto_curvo = height_outputs[0].cpu().numpy()
+            
+            # Aplicar el factor de escala para ajustar las mediciones al ratio actual
+            alto_recto = float(alto_recto / original_ratio)
+            alto_curvo = float(alto_curvo / original_ratio)
             
             # Obtener mediciones de nudos y entrenudos
             measures_flat = measure_outputs[0].cpu().numpy()
@@ -541,20 +599,23 @@ def predict_image(image_path, model_path=None, device=None, max_measurements=15)
             for i in range(0, len(measures_flat), 4):
                 if i + 4 <= len(measures_flat):
                     group = measures_flat[i:i+4]
+                    # Aplicar el factor de escala a cada medida
+                    adjusted_group = [float(val / original_ratio) for val in group]
+                    
                     # Sólo incluir mediciones no nulas
-                    if not all(v == 0 for v in group):
+                    if not all(v == 0 for v in adjusted_group):
                         measures_grouped.append({
-                            "Nudo_Largo_cm": float(group[0]),
-                            "Nudo_Ancho_cm": float(group[1]),
-                            "Entrenudo_Largo_cm": float(group[2]),
-                            "Entrenudo_Ancho_cm": float(group[3])
+                            "Nudo_Largo_cm": adjusted_group[0],
+                            "Nudo_Ancho_cm": adjusted_group[1],
+                            "Entrenudo_Largo_cm": adjusted_group[2],
+                            "Entrenudo_Ancho_cm": adjusted_group[3]
                         })
             
             # Crear resultado en formato JSON esperado
             return {
                 "Caña": {
-                    "AltoRecto_cm": float(alto_recto),
-                    "AltoCurvo_cm": float(alto_curvo),
+                    "AltoRecto_cm": alto_recto,
+                    "AltoCurvo_cm": alto_curvo,
                     "Confianza": confidence_value
                 },
                 "Mediciones": measures_grouped
@@ -565,7 +626,6 @@ def predict_image(image_path, model_path=None, device=None, max_measurements=15)
                 "Caña": False,
                 "Confianza": confidence_value
             }
-
 if __name__ == "__main__":
     # Ejemplo de uso
     print("DeepSugarCaneNet - Modelo para detección y medición de caña de azúcar")

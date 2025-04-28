@@ -46,15 +46,27 @@ class DeepSugarCaneNet(nn.Module):
             nn.Conv2d(128, 256, 3, padding=1), nn.BatchNorm2d(256), nn.ReLU(), nn.MaxPool2d(2),
             nn.Conv2d(256, 512, 3, padding=1), nn.BatchNorm2d(512), nn.ReLU(), nn.MaxPool2d(2),
         )
+        
+        # Clasificador para determinar si es caña o no
         self.classifier = nn.Sequential(
             nn.Flatten(),
             nn.Linear(512*20*20, 512), nn.ReLU(), nn.Dropout(0.5),
             nn.Linear(512, num_classes)
         )
+        
+        # Regresión para medidas de nudos y entrenudos
+        self.measurements = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(512*20*20, 512), nn.ReLU(), nn.Dropout(0.5),
+            nn.Linear(512, 256), nn.ReLU(),
+            nn.Linear(256, 4)  # [largo_nudo, ancho_nudo, largo_entrenudo, ancho_entrenudo]
+        )
+        
     def forward(self, x):
-        x = self.features(x)
-        x = self.classifier(x)
-        return x
+        features = self.features(x)
+        class_output = self.classifier(features)
+        measurements = self.measurements(features)
+        return class_output, measurements
 
 def get_dataloaders(train_dir, val_dir, batch_size=16, img_size=320):
     transform = transforms.Compose([
@@ -76,55 +88,108 @@ def train_model(train_dir, val_dir, model_path=None, epochs=30, batch_size=16, i
         model.load_state_dict(torch.load(model_path, map_location=device))
     else:
         model = DeepSugarCaneNet(num_classes=2).to(device)
-    criterion = nn.CrossEntropyLoss()
+    
+    # Criterios de pérdida para clasificación y regresión
+    class_criterion = nn.CrossEntropyLoss()
+    measure_criterion = nn.MSELoss()
+    
     optimizer = optim.Adam(model.parameters(), lr=lr)
     best_acc = 0
-    history = {'train_loss':[], 'val_loss':[], 'val_acc':[]}
+    history = {
+        'train_class_loss': [], 'train_measure_loss': [],
+        'val_class_loss': [], 'val_measure_loss': [],
+        'val_acc': []
+    }
+    
     for epoch in range(epochs):
         try:
             model.train()
-            running_loss = 0
+            running_class_loss = 0
+            running_measure_loss = 0
             total_batches = len(train_loader)
-            for batch_idx, (images, labels) in enumerate(train_loader):
-                images, labels = images.to(device), labels.to(device)
+            
+            for batch_idx, (images, labels, measures) in enumerate(train_loader):
+                images = images.to(device)
+                labels = labels.to(device)
+                measures = measures.to(device)
+                
                 optimizer.zero_grad()
-                outputs = model(images)
-                loss = criterion(outputs, labels)
-                loss.backward()
+                class_outputs, measure_outputs = model(images)
+                
+                # Calcular pérdidas
+                class_loss = class_criterion(class_outputs, labels)
+                measure_loss = measure_criterion(measure_outputs, measures)
+                total_loss = class_loss + measure_loss
+                
+                total_loss.backward()
                 optimizer.step()
-                running_loss += loss.item()*images.size(0)
-                print(f"Época {epoch+1}/{epochs} - Lote {batch_idx+1}/{total_batches} - Pérdida: {loss.item():.4f}")
-            train_loss = running_loss/len(train_loader.dataset)
-            val_loss, val_acc = evaluate(model, val_loader, criterion, device)
-            history['train_loss'].append(train_loss)
-            history['val_loss'].append(val_loss)
+                
+                running_class_loss += class_loss.item() * images.size(0)
+                running_measure_loss += measure_loss.item() * images.size(0)
+                
+                print(f"Época {epoch+1}/{epochs} - Lote {batch_idx+1}/{total_batches} - "
+                      f"Pérdida Clasificación: {class_loss.item():.4f} - "
+                      f"Pérdida Medidas: {measure_loss.item():.4f}")
+            
+            # Calcular pérdidas promedio
+            train_class_loss = running_class_loss / len(train_loader.dataset)
+            train_measure_loss = running_measure_loss / len(train_loader.dataset)
+            
+            # Evaluación
+            val_metrics = evaluate(model, val_loader, class_criterion, measure_criterion, device)
+            val_class_loss, val_measure_loss, val_acc = val_metrics
+            
+            # Actualizar historial
+            history['train_class_loss'].append(train_class_loss)
+            history['train_measure_loss'].append(train_measure_loss)
+            history['val_class_loss'].append(val_class_loss)
+            history['val_measure_loss'].append(val_measure_loss)
             history['val_acc'].append(val_acc)
+            
             if val_acc > best_acc:
                 best_acc = val_acc
                 torch.save(model.state_dict(), os.path.join(os.path.dirname(__file__), 'best_sugarcane_model.pth'))
-            print(f"Epoch {epoch+1}/{epochs} - Train Loss: {train_loss:.4f} - Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.4f}")
+            
+            print(f"Epoch {epoch+1}/{epochs}:\n"
+                  f"Train - Class Loss: {train_class_loss:.4f}, Measure Loss: {train_measure_loss:.4f}\n"
+                  f"Val - Class Loss: {val_class_loss:.4f}, Measure Loss: {val_measure_loss:.4f}, Acc: {val_acc:.4f}")
+            
         except Exception as e:
             print(f"Error durante el entrenamiento en la época {epoch+1}: {e}")
             break
+    
     plot_metrics(history)
     return model, history
 
-def evaluate(model, loader, criterion, device):
+def evaluate(model, loader, class_criterion, measure_criterion, device):
     model.eval()
-    loss = 0
+    class_loss = 0
+    measure_loss = 0
     correct = 0
     total = 0
+    
     with torch.no_grad():
-        for images, labels in loader:
-            images, labels = images.to(device), labels.to(device)
-            outputs = model(images)
-            loss += criterion(outputs, labels).item()*images.size(0)
-            _, preds = torch.max(outputs, 1)
+        for images, labels, measures in loader:
+            images = images.to(device)
+            labels = labels.to(device)
+            measures = measures.to(device)
+            
+            class_outputs, measure_outputs = model(images)
+            
+            # Calcular pérdidas
+            class_loss += class_criterion(class_outputs, labels).item() * images.size(0)
+            measure_loss += measure_criterion(measure_outputs, measures).item() * images.size(0)
+            
+            # Calcular precisión de clasificación
+            _, preds = torch.max(class_outputs, 1)
             correct += (preds == labels).sum().item()
             total += labels.size(0)
-    avg_loss = loss/total
-    acc = correct/total
-    return avg_loss, acc
+    
+    avg_class_loss = class_loss / total
+    avg_measure_loss = measure_loss / total
+    acc = correct / total
+    
+    return avg_class_loss, avg_measure_loss, acc
 
 def plot_metrics(history, save_dir=None):
     plt.figure(figsize=(12,5))
@@ -151,14 +216,35 @@ def predict_image(image_path, weights_path=None, device=None):
         weights_path = os.path.join(os.path.dirname(__file__), 'best_sugarcane_model.pth')
     model.load_state_dict(torch.load(weights_path, map_location=device))
     model.eval()
+    
     transform = transforms.Compose([
         transforms.Resize((320, 320)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
+    
     image = Image.open(image_path).convert('RGB')
     image = transform(image).unsqueeze(0).to(device)
+    
     with torch.no_grad():
-        outputs = model(image)
-        _, pred = torch.max(outputs, 1)
-    return pred.item()
+        class_outputs, measure_outputs = model(image)
+        _, pred = torch.max(class_outputs, 1)
+        
+        # Si es una caña de azúcar (clase 1), devolver las medidas
+        if pred.item() == 1:
+            measures = measure_outputs[0].cpu().numpy()
+            return {
+                'es_cana': True,
+                'medidas': {
+                    'nudo': {
+                        'largo_cm': float(measures[0]),
+                        'ancho_cm': float(measures[1])
+                    },
+                    'entrenudo': {
+                        'largo_cm': float(measures[2]),
+                        'ancho_cm': float(measures[3])
+                    }
+                }
+            }
+        else:
+            return {'es_cana': False}

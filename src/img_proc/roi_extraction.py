@@ -66,13 +66,10 @@ def extraer_roi(image, ancho_max=3840, alto_max=2160):
                     np.linalg.norm(pts1[1] - pts1[3])   # lado derecho
                 )
                 
-                # Usar el lado más largo para crear un cuadrado perfecto
-                lado = int(lado_max)
-                
-                # Transformar perspectiva a un cuadrado perfecto
-                pts2 = np.float32([[0, 0], [lado, 0], [0, lado], [lado, lado]])
+                # Transformar perspectiva a un cuadrado de 1640x1640
+                pts2 = np.float32([[0, 0], [1640, 0], [0, 1640], [1640, 1640]])
                 M = cv2.getPerspectiveTransform(pts1, pts2)
-                imagen_alineada = cv2.warpPerspective(image, M, (lado, lado))
+                imagen_alineada = cv2.warpPerspective(image, M, (1640, 1640))
                 
                 return imagen_alineada
     
@@ -104,12 +101,9 @@ def extraer_roi(image, ancho_max=3840, alto_max=2160):
             np.linalg.norm(pts1[1] - pts1[3])   # lado derecho
         )
         
-        # Usar el lado más largo para crear un cuadrado perfecto
-        lado = int(lado_max)
-        
-        # Transformar perspectiva a un cuadrado perfecto
-        pts2 = np.float32([[0, 0], [lado, 0], [0, lado], [lado, lado]])
+        # Transformar perspectiva a un cuadrado de 1640x1640
+        pts2 = np.float32([[0, 0], [1640, 0], [0, 1640], [1640, 1640]])
         M = cv2.getPerspectiveTransform(pts1, pts2)
-        imagen_alineada = cv2.warpPerspective(image, M, (lado, lado))
+        imagen_alineada = cv2.warpPerspective(image, M, (1640, 1640))
     
     return imagen_alineada

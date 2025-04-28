@@ -4,7 +4,8 @@ from .edge_detection import detectar_bordes
 
 class ImageProcessor:
     def redimensionar_imagen(self, imagen):
-        return imagen
+        import cv2
+        return cv2.resize(imagen, (1640, 1640), interpolation=cv2.INTER_AREA)
     
     def procesar_imagen_completa(self, ruta_imagen):
         imagen = cv2.imread(ruta_imagen)

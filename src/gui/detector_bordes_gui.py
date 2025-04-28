@@ -19,6 +19,7 @@ class DetectorBordesGUI:
         self.info_resultado = None
         self.imagen_procesada = None
         self.modo_grises = tk.BooleanVar(value=False)
+        self.modelo_cargado = False
         self.establecer_estilos()
         self.crear_interfaz()
         self.root.mainloop()
@@ -67,6 +68,8 @@ class DetectorBordesGUI:
         self.switch_grises.pack(pady=10)
         self.btn_procesar = ttk.Button(main_frame, text="⚙️ Procesar Imagen", command=self.procesar_imagen, state='disabled')
         self.btn_procesar.pack(pady=10, fill='x')
+        self.btn_probar_modelo = ttk.Button(main_frame, text="🧪 Probar Modelo", command=self.probar_modelo, state='disabled')
+        self.btn_probar_modelo.pack(pady=10, fill='x')
         self.lbl_estado = ttk.Label(main_frame, text="", wraplength=560, foreground="#1E40AF", justify="center")
         self.lbl_estado.pack(pady=10)
         # Botón Regresar siempre visible y activo
@@ -117,8 +120,37 @@ class DetectorBordesGUI:
             self.switch_grises.config(state='active')
             self.modo_grises.trace_add('write', lambda *args: self.actualizar_vista_previa())
             self.mostrar_vista_previa_integrada(self.imagen_procesada)
+            self.btn_probar_modelo.config(state='normal')
         except Exception as e:
             messagebox.showerror("Error", f"❌ Error al procesar la imagen:\n{str(e)}")
+
+    def probar_modelo(self):
+        try:
+            if not self.modelo_cargado:
+                from model.deep_sugarcane_model import cargar_modelo
+                self.modelo = cargar_modelo()
+                self.modelo_cargado = True
+            
+            predicciones = self.modelo.predecir(self.imagen_procesada)
+            self.mostrar_resultados(predicciones)
+        except Exception as e:
+            messagebox.showerror("Error", f"❌ Error al probar el modelo:\n{str(e)}")
+
+    def mostrar_resultados(self, predicciones):
+        # Crear ventana para mostrar resultados
+        ventana_resultados = tk.Toplevel(self.root)
+        ventana_resultados.title("Resultados del Modelo")
+        ventana_resultados.geometry("400x300")
+        
+        # Mostrar medidas
+        frame_medidas = ttk.Frame(ventana_resultados, padding=20)
+        frame_medidas.pack(expand=True, fill='both')
+        
+        for i, medida in enumerate(predicciones):
+            ttk.Label(frame_medidas, text=f"Medida {i+1}: {medida:.2f} cm").pack(anchor='w')
+        
+        # Botón para cerrar
+        ttk.Button(ventana_resultados, text="Cerrar", command=ventana_resultados.destroy).pack(pady=10)
 
     def confirmar_guardado(self, info_imagen_raw, info_resultado):
         try:

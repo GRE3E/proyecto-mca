@@ -6,6 +6,7 @@ numpy==1.24.3
 opencv-python==4.8.1.78
 Pillow==10.0.0
 matplotlib==3.7.2
+scikit-image==0.21.0
 
 # GUI
 tk==0.1.0
@@ -13,4 +14,3 @@ tk==0.1.0
 # Testing
 pytest==7.4.2
 
-scikit_image ==0.25.2

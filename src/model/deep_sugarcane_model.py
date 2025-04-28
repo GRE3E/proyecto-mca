@@ -287,7 +287,7 @@ def train_model(train_dir, val_dir, model_path=None, epochs=30, batch_size=16, i
     ], lr=lr)
     
     # Learning rate scheduler
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.5, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.5)
     
     best_val_loss = float('inf')
     no_improve_epochs = 0

@@ -529,104 +529,349 @@ def plot_metrics(history, save_dir=None):
     
     plt.close()
 
-def predict_image(image_path, model_path=None, device=None, max_measurements=15, pixel_to_cm_ratio=10.0):
+def load_model(model_path=None):
     """
-    Predice si una imagen es de caña de azúcar y sus características, aplicando la relación píxel-cm.
+    Carga el modelo entrenado.
     
     Args:
-        image_path: Ruta de la imagen a analizar
-        model_path: Ruta al modelo preentrenado (opcional)
-        device: Dispositivo de computación ('cuda' o 'cpu')
-        max_measurements: Número máximo de mediciones a considerar
-        pixel_to_cm_ratio: Relación píxeles/cm (por defecto: 10.0)
-        
-    Returns:
-        Diccionario con los resultados de la predicción y mediciones
-    """
-    device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
+        model_path: Ruta al modelo (opcional)
     
-    # Cargar modelo
-    model = DeepSugarCaneNet(num_classes=2, max_measurements=max_measurements)
+    Returns:
+        Modelo cargado
+    """
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model = DeepSugarCaneNet(num_classes=2).to(device)
+    
     if model_path is None:
         model_path = os.path.join(os.path.dirname(__file__), 'best_sugarcane_model.pth')
     
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Modelo no encontrado en {model_path}")
+    if os.path.exists(model_path):
+        model.load_state_dict(torch.load(model_path, map_location=device))
+        print(f"Modelo cargado desde {model_path}")
+    else:
+        print(f"No se encontró el modelo en {model_path}")
     
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    return model
+
+def get_class_names():
+    """
+    Obtiene los nombres de las clases desde dataset.yaml
+    
+    Returns:
+        Lista de nombres de clases
+    """
+    import yaml
+    yaml_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '..', 'dataset.yaml')
+    with open(yaml_path, 'r') as f:
+        data = yaml.safe_load(f)
+        return data['names']
+
+def predict_image(image_path, pixel_to_cm_ratio=10.0):
+    """
+    Predice la clase de una imagen y realiza mediciones si es una caña.
+    
+    Args:
+        image_path: Ruta a la imagen
+        pixel_to_cm_ratio: Relación píxel-centímetro
+        
+    Returns:
+        dict: Diccionario con los resultados
+    """
+    import cv2
+    import numpy as np
+    import sys
+    import os
+    
+    # Cargar imagen
+    img = cv2.imread(image_path)
+    if img is None:
+        raise ValueError(f"No se pudo cargar la imagen: {image_path}")
+    
+    # Preprocesar imagen para el modelo
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img_resized = cv2.resize(img_rgb, (224, 224))
+    img_tensor = torch.from_numpy(img_resized.transpose(2, 0, 1)).float() / 255.0
+    img_tensor = img_tensor.unsqueeze(0)
+    
+    # Cargar modelo
+    model = load_model()
     model.eval()
-    model = model.to(device)
     
-    # Preprocesamiento de imagen
-    transform = transforms.Compose([
-        transforms.Resize((320, 320)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-    
-    # Normalizar imagen con la relación píxel-cm
-    image_info = normalize_pixel_to_cm(Image.open(image_path).convert('RGB'), pixel_to_cm_ratio)
-    original_ratio = pixel_to_cm_ratio / 10.0  # Factor de ajuste respecto al entrenamiento
-    
-    # Transformar para la red
-    image_tensor = transform(Image.fromarray(image_info['image']) if isinstance(image_info['image'], np.ndarray) 
-                           else Image.open(image_path).convert('RGB'))
-    image_tensor = image_tensor.unsqueeze(0).to(device)
+    # Predicción
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    img_tensor = img_tensor.to(device)
     
     with torch.no_grad():
-        class_outputs, height_outputs, measure_outputs = model(image_tensor)
-        probabilities = torch.nn.functional.softmax(class_outputs, dim=1)
-        confidence, pred_class = torch.max(probabilities, 1)
+        class_outputs, height_outputs, measure_outputs = model(img_tensor)
+        _, predicted = torch.max(class_outputs, 1)
+        confidence = torch.nn.functional.softmax(class_outputs, dim=1)[0][predicted.item()].item()
+    
+    # Obtener clase predicha
+    class_idx = predicted.item()
+    class_names = get_class_names()
+    class_name = class_names[class_idx] if class_idx < len(class_names) else "Desconocido"
+    
+    # Inicializar resultados
+    resultados = {
+        'Caña': {
+            'Clase': class_name,
+            'Confianza': confidence
+        }
+    }
+    
+    # Si es una caña, realizar mediciones
+    if class_name == 'ca':
+        try:
+            # Importar aquí para evitar importación circular
+            sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            from img_proc.medicion_cana import medir_cana_y_nudos_con_escala_dinamica
+            
+            # Realizar mediciones
+            mediciones = medir_cana_y_nudos_con_escala_dinamica(img)
+            
+            # Añadir mediciones al resultado
+            resultados['Caña']['AltoRecto_cm'] = mediciones['largo_cana_cm']
+            resultados['Caña']['AnchoCana_cm'] = mediciones['ancho_cana_cm']
+            
+            # Procesar nudos y entrenudos para el formato de la interfaz
+            resultados['Mediciones'] = []
+            
+            # Determinar el número máximo de elementos a procesar
+            max_elementos = max(len(mediciones['nudos']), len(mediciones['entrenudos']))
+            
+            for i in range(max_elementos):
+                medicion_item = {}
+                
+                # Datos del nudo
+                if i < len(mediciones['nudos']):
+                    nudo = mediciones['nudos'][i]
+                    medicion_item['Nudo_Largo_cm'] = nudo['largo_cm']
+                    medicion_item['Nudo_Ancho_cm'] = nudo['ancho_cm']
+                else:
+                    medicion_item['Nudo_Largo_cm'] = 0.0
+                    medicion_item['Nudo_Ancho_cm'] = 0.0
+                
+                # Datos del entrenudo
+                if i < len(mediciones['entrenudos']):
+                    entrenudo = mediciones['entrenudos'][i]
+                    medicion_item['Entrenudo_Largo_cm'] = entrenudo['largo_cm']
+                    medicion_item['Entrenudo_Ancho_cm'] = entrenudo['ancho_cm']
+                else:
+                    medicion_item['Entrenudo_Largo_cm'] = 0.0
+                    medicion_item['Entrenudo_Ancho_cm'] = 0.0
+                
+                resultados['Mediciones'].append(medicion_item)
+            
+            # Guardar imagen procesada para visualización
+            if 'imagen_resultado' in mediciones:
+                resultados['imagen_resultado'] = mediciones['imagen_resultado']
+            else:
+                # Si no hay imagen procesada en las mediciones, crear una visualización
+                resultados['imagen_resultado'] = visualizar_prediccion(img, resultados)
+            
+        except Exception as e:
+            print(f"Error al realizar mediciones: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            # Asegurar que haya una lista de mediciones vacía
+            resultados['Mediciones'] = []
+            # Crear una visualización básica
+            resultados['imagen_resultado'] = visualizar_prediccion(img, resultados)
+    else:
+        # No es una caña, asegurar que haya una lista de mediciones vacía
+        resultados['Mediciones'] = []
+        # Crear una visualización básica
+        resultados['imagen_resultado'] = visualizar_prediccion(img, resultados)
+    
+    return resultados
+
+def visualizar_prediccion(imagen, prediccion):
+    """
+    Visualiza los resultados de la predicción del modelo en la imagen.
+    
+    Args:
+        imagen: Imagen de entrada (numpy array)
+        prediccion: Diccionario con los resultados de la predicción
+    
+    Returns:
+        numpy.ndarray: Imagen con las mediciones visualizadas
+    """
+    import cv2
+    import numpy as np
+    
+    # Crear una copia de la imagen para dibujar
+    imagen_resultado = imagen.copy()
+    
+    # Verificar si es una caña
+    if isinstance(prediccion, dict) and "Caña" in prediccion:
+        cane_data = prediccion["Caña"]
         
-        # Convertir a formatos Python nativos
-        es_cana = bool(pred_class.item() == 1)
-        confidence_value = float(confidence.item())
-        
-        # Si es una caña de azúcar (clase 1), procesar las medidas
-        if es_cana:
-            # Obtener medidas de altura y ajustar según la relación píxel-cm
-            alto_recto, alto_curvo = height_outputs[0].cpu().numpy()
+        if isinstance(cane_data, dict):  # Es una caña
+            # Obtener dimensiones de la imagen
+            altura, ancho = imagen.shape[:2]
             
-            # Aplicar el factor de escala para ajustar las mediciones al ratio actual
-            alto_recto = float(alto_recto / original_ratio)
-            alto_curvo = float(alto_curvo / original_ratio)
+            # Dibujar un rectángulo alrededor de la caña
+            cv2.rectangle(imagen_resultado, (10, 10), (ancho-10, altura-10), (0, 255, 0), 2)
             
-            # Obtener mediciones de nudos y entrenudos
-            measures_flat = measure_outputs[0].cpu().numpy()
+            # Mostrar altura
+            alto_recto = cane_data.get("AltoRecto_cm", 0)
+            alto_curvo = cane_data.get("AltoCurvo_cm", 0)
+            cv2.putText(imagen_resultado, f"Alto recto: {alto_recto:.2f} cm", 
+                       (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+            cv2.putText(imagen_resultado, f"Alto curvo: {alto_curvo:.2f} cm", 
+                       (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             
-            # Reorganizar en grupos de 4 valores
-            measures_grouped = []
-            for i in range(0, len(measures_flat), 4):
-                if i + 4 <= len(measures_flat):
-                    group = measures_flat[i:i+4]
-                    # Aplicar el factor de escala a cada medida
-                    adjusted_group = [float(val / original_ratio) for val in group]
+            # Procesar mediciones
+            measurements = prediccion.get("Mediciones", [])
+            if measurements:
+                # Calcular posiciones aproximadas de los nudos
+                num_nudos = len(measurements)
+                if num_nudos > 0:
+                    espaciado = (altura - 100) / num_nudos
                     
-                    # Sólo incluir mediciones no nulas
-                    if not all(v == 0 for v in adjusted_group):
-                        measures_grouped.append({
-                            "Nudo_Largo_cm": adjusted_group[0],
-                            "Nudo_Ancho_cm": adjusted_group[1],
-                            "Entrenudo_Largo_cm": adjusted_group[2],
-                            "Entrenudo_Ancho_cm": adjusted_group[3]
-                        })
+                    for i, m in enumerate(measurements):
+                        if m:  # Verificar que no sean valores nulos
+                            # Obtener medidas
+                            nudo_largo = float(m.get("Nudo_Largo_cm", 0))
+                            nudo_ancho = float(m.get("Nudo_Ancho_cm", 0))
+                            entrenudo_largo = float(m.get("Entrenudo_Largo_cm", 0))
+                            entrenudo_ancho = float(m.get("Entrenudo_Ancho_cm", 0))
+                            
+                            # Calcular posición aproximada del nudo
+                            y_pos = int(50 + i * espaciado)
+                            
+                            # Dibujar línea horizontal para el nudo
+                            if nudo_largo > 0 and nudo_ancho > 0:
+                                cv2.line(imagen_resultado, (ancho//4, y_pos), (3*ancho//4, y_pos), 
+                                        (0, 0, 255), 2)
+                                cv2.putText(imagen_resultado, f"N{i+1}: {nudo_largo:.1f}x{nudo_ancho:.1f} cm", 
+                                           (ancho//4 - 120, y_pos-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                            
+                            # Dibujar entrenudo si no es el último nudo
+                            if i < num_nudos - 1 and entrenudo_largo > 0:
+                                next_y = int(50 + (i+1) * espaciado)
+                                cv2.line(imagen_resultado, (ancho//2, y_pos+10), (ancho//2, next_y-10), 
+                                        (255, 0, 0), 1, cv2.LINE_AA)
+                                cv2.putText(imagen_resultado, f"E{i+1}: {entrenudo_largo:.1f} cm", 
+                                           (ancho//2 + 10, (y_pos + next_y)//2), 
+                                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+    
+    return imagen_resultado
+def predict_image(image_path, pixel_to_cm_ratio=10.0):
+    """
+    Predice la clase de una imagen y realiza mediciones si es una caña.
+    
+    Args:
+        image_path: Ruta a la imagen
+        pixel_to_cm_ratio: Relación píxel-centímetro
+        
+    Returns:
+        dict: Diccionario con los resultados
+    """
+    import cv2
+    import numpy as np
+    import sys
+    import os
+    
+    # Cargar imagen
+    img = cv2.imread(image_path)
+    if img is None:
+        raise ValueError(f"No se pudo cargar la imagen: {image_path}")
+    
+    # Preprocesar imagen para el modelo
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img_resized = cv2.resize(img_rgb, (224, 224))
+    img_tensor = torch.from_numpy(img_resized.transpose(2, 0, 1)).float() / 255.0
+    img_tensor = img_tensor.unsqueeze(0)
+    
+    # Cargar modelo
+    model = load_model()
+    model.eval()
+    
+    # Predicción
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    img_tensor = img_tensor.to(device)
+    
+    with torch.no_grad():
+        class_outputs, height_outputs, measure_outputs = model(img_tensor)
+        _, predicted = torch.max(class_outputs, 1)
+        confidence = torch.nn.functional.softmax(class_outputs, dim=1)[0][predicted.item()].item()
+    
+    # Obtener clase predicha
+    class_idx = predicted.item()
+    class_names = get_class_names()
+    class_name = class_names[class_idx] if class_idx < len(class_names) else "Desconocido"
+    
+    # Inicializar resultados
+    resultados = {
+        'Caña': {
+            'Clase': class_name,
+            'Confianza': confidence
+        }
+    }
+    
+    # Si es una caña, realizar mediciones
+    if class_name == 'ca':
+        try:
+            # Importar aquí para evitar importación circular
+            sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            from img_proc.medicion_cana import medir_cana_y_nudos_con_escala_dinamica
             
-            # Crear resultado en formato JSON esperado
-            return {
-                "Caña": {
-                    "AltoRecto_cm": alto_recto,
-                    "AltoCurvo_cm": alto_curvo,
-                    "Confianza": confidence_value
-                },
-                "Mediciones": measures_grouped
-            }
-        else:
-            # No es caña
-            return {
-                "Caña": False,
-                "Confianza": confidence_value
-            }
-if __name__ == "__main__":
-    # Ejemplo de uso
-    print("DeepSugarCaneNet - Modelo para detección y medición de caña de azúcar")
-    print("Utilizar train_model() para entrenar o predict_image() para predecir")
+            # Realizar mediciones
+            mediciones = medir_cana_y_nudos_con_escala_dinamica(img)
+            
+            # Añadir mediciones al resultado
+            resultados['Caña']['AltoRecto_cm'] = mediciones['largo_cana_cm']
+            resultados['Caña']['AnchoCana_cm'] = mediciones['ancho_cana_cm']
+            
+            # Procesar nudos y entrenudos para el formato de la interfaz
+            resultados['Mediciones'] = []
+            
+            # Determinar el número máximo de elementos a procesar
+            max_elementos = max(len(mediciones['nudos']), len(mediciones['entrenudos']))
+            
+            for i in range(max_elementos):
+                medicion_item = {}
+                
+                # Datos del nudo
+                if i < len(mediciones['nudos']):
+                    nudo = mediciones['nudos'][i]
+                    medicion_item['Nudo_Largo_cm'] = nudo['largo_cm']
+                    medicion_item['Nudo_Ancho_cm'] = nudo['ancho_cm']
+                else:
+                    medicion_item['Nudo_Largo_cm'] = 0.0
+                    medicion_item['Nudo_Ancho_cm'] = 0.0
+                
+                # Datos del entrenudo
+                if i < len(mediciones['entrenudos']):
+                    entrenudo = mediciones['entrenudos'][i]
+                    medicion_item['Entrenudo_Largo_cm'] = entrenudo['largo_cm']
+                    medicion_item['Entrenudo_Ancho_cm'] = entrenudo['ancho_cm']
+                else:
+                    medicion_item['Entrenudo_Largo_cm'] = 0.0
+                    medicion_item['Entrenudo_Ancho_cm'] = 0.0
+                
+                resultados['Mediciones'].append(medicion_item)
+            
+            # Guardar imagen procesada para visualización
+            if 'imagen_resultado' in mediciones:
+                resultados['imagen_resultado'] = mediciones['imagen_resultado']
+            else:
+                # Si no hay imagen procesada en las mediciones, crear una visualización
+                resultados['imagen_resultado'] = visualizar_prediccion(img, resultados)
+            
+        except Exception as e:
+            print(f"Error al realizar mediciones: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            # Asegurar que haya una lista de mediciones vacía
+            resultados['Mediciones'] = []
+            # Crear una visualización básica
+            resultados['imagen_resultado'] = visualizar_prediccion(img, resultados)
+    else:
+        # No es una caña, asegurar que haya una lista de mediciones vacía
+        resultados['Mediciones'] = []
+        # Crear una visualización básica
+        resultados['imagen_resultado'] = visualizar_prediccion(img, resultados)
+    
+    return resultados

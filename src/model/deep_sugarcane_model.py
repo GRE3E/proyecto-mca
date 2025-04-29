@@ -32,6 +32,10 @@ class SugarCaneDataset(Dataset):
                         img_path = os.path.join(class_path, fname)
                         json_path = os.path.splitext(img_path)[0] + '.json'
                         
+                        # Crear mediciones vacías para imágenes sin JSON
+                        empty_measurements = [[0.0, 0.0, 0.0, 0.0] for _ in range(self.max_measurements)]
+                        flattened_empty = [item for sublist in empty_measurements for item in sublist]
+                        
                         if os.path.exists(json_path):
                             with open(json_path, 'r') as json_file:
                                 data = json.load(json_file)
@@ -104,6 +108,15 @@ class SugarCaneDataset(Dataset):
                                         0.0,  # No hay info de altura
                                         flattened_dummy
                                     ))
+                        else:
+                            # Agregar imagen sin mediciones (solo para clasificación)
+                            self.samples.append((
+                                img_path,
+                                label,
+                                0.0,  # No hay info de altura
+                                0.0,  # No hay info de altura
+                                flattened_empty  # Mediciones vacías
+                            ))
 
     def __len__(self):
         return len(self.samples)

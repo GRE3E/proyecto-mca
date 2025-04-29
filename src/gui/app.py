@@ -114,17 +114,10 @@ class ModelTestApp:
         results_container = ttk.Frame(self.results_tab, style="Card.TFrame", padding=15)
         results_container.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
         
-        # Etiqueta para la clase predicha
-        self.class_label = ttk.Label(results_container, text="Seleccione una imagen para predicción", 
+        # Título de resultados
+        results_title = ttk.Label(results_container, text="Resultados del Análisis", 
                                    style="Subtitle.TLabel")
-        self.class_label.pack(pady=10, anchor=tk.W)
-        
-        # Frame para confianza
-        conf_frame = ttk.Frame(results_container)
-        conf_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(conf_frame, text="Confianza:", style="Normal.TLabel").pack(side=tk.LEFT, padx=(0, 10))
-        self.confidence_label = ttk.Label(conf_frame, text="N/A", style="Result.TLabel")
-        self.confidence_label.pack(side=tk.LEFT)
+        results_title.pack(pady=10, anchor=tk.W)
         
         # Frame para altura
         self.height_frame = ttk.Frame(results_container)
@@ -283,13 +276,6 @@ class ModelTestApp:
             cane_data = pred["Caña"]
             
             if isinstance(cane_data, dict):  # Es una caña
-                # Mostrar la clase
-                self.class_label.config(text=f"Predicción: {self.class_names[1]}")
-                
-                # Mostrar confianza
-                confidence = cane_data.get("Confianza", 0) * 100
-                self.confidence_label.config(text=f"{confidence:.2f}%")
-                
                 # Mostrar altura aplicando la escala
                 alto_recto = cane_data.get("AltoRecto_cm", 0)
                 alto_curvo = cane_data.get("AltoCurvo_cm", 0)
@@ -322,17 +308,12 @@ class ModelTestApp:
                                     f"{entrenudo_ancho:.2f}"
                                 ))
             else:  # No es una caña
-                self.class_label.config(text=f"Predicción: {self.class_names[0]}")
-                self.confidence_label.config(text=f"{(1 - cane_data) * 100:.2f}%")
-                
                 # Ocultar frames de altura y mediciones
                 self.height_frame.pack_forget()
                 self.measurements_title.pack_forget()
                 self.tree.pack_forget()
         else:
             # Formato desconocido de predicción
-            self.class_label.config(text="Predicción desconocida")
-            self.confidence_label.config(text="N/A")
             self.height_frame.pack_forget()
             self.measurements_title.pack_forget()
             self.tree.pack_forget()

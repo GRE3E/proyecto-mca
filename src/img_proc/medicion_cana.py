@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import pyttsx3
 from skimage.morphology import skeletonize
 
 # Constante de escala ajustada para coincidir con el largo total esperado (141.47 cm)
@@ -62,27 +63,23 @@ def preprocesar_imagen_cana(imagen):
 def calcular_escala(imagen):
     """
     Devuelve la escala fija de píxeles a centímetros.
-    
     Args:
         imagen: Imagen de entrada (no utilizada, mantenida por compatibilidad)
-    
     Returns:
         float: Factor de conversión (píxeles por cm)
     """
-    pixeles_por_cm = 1.0 / ESCALA_CM_POR_PIXEL
+    pixeles_por_cm = 10.0  # 10 píxeles = 1 cm
     return pixeles_por_cm
 
 def calcular_escala_dinamica(imagen):
     """
     Calcula la escala en cm por píxel basada en el tamaño de la imagen y el largo esperado.
-    
     Args:
         imagen: Imagen de entrada (numpy array)
-    
     Returns:
         float: Factor de conversión (cm por píxel)
     """
-    return ESCALA_CM_POR_PIXEL_NUEVA
+    return 0.1  # 1 píxel = 0.1 cm (1 mm)
 
 def calcular_ancho_curvatura(mask, escala_cm_por_pixel):
     """
@@ -722,7 +719,16 @@ def medir_cana_y_nudos_con_escala_dinamica(imagen):
     imagen_resultado = visualizar_resultados_orientada(imagen, resultado, nudos_posiciones, box)
     resultado['imagen_resultado'] = imagen_resultado
     resultado['imagen_preprocesada'] = imagen_preprocesada
-    
+    # Hablar resultados
+    engine = pyttsx3.init()
+    mensaje = (
+        f"La caña de azúcar tiene un largo de {resultado['largo_cana_cm']:.2f} centímetros, "
+        f"un ancho de {resultado['ancho_cana_cm']:.2f} centímetros, "
+        f"{resultado['cantidad_nudos']} nudos "
+        f"y {resultado['cantidad_entrenudos']} entrenudos."
+    )
+    engine.say(mensaje)
+    engine.runAndWait()  
     return resultado
 
 def visualizar_resultados(imagen, medidas, nudos_posiciones, x, y, w, h):

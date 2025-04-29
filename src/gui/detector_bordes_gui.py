@@ -7,11 +7,8 @@ class DetectorBordesGUI:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("🖼️ Detector de Bordes")
-        ancho_pantalla = self.root.winfo_screenwidth()
-        alto_pantalla = self.root.winfo_screenheight()
-        self.root.geometry(f"{ancho_pantalla}x{alto_pantalla}+0+0")
-        self.root.state('zoomed')
-        self.root.configure(bg="#F1F6F9")
+        self.root.attributes('-fullscreen', True)
+        self.root.configure(bg="#0d1117")
         self.file_manager = FileManager()
         self.image_processor = ImageProcessor()
         self.imagen_path = None
@@ -27,75 +24,111 @@ class DetectorBordesGUI:
     def establecer_estilos(self):
         estilo = ttk.Style()
         estilo.theme_use("clam")
-        color_primario = "#112D4E"
-        color_secundario = "#1E40AF"
-        fondo = "#F1F6F9"
-        blanco = "#FFFFFF"
-        estilo.configure("Switch.TCheckbutton", background=fondo, font=("Segoe UI", 11), foreground=color_primario)
-        estilo.configure("TButton", font=("Segoe UI", 11, "bold"), padding=10, foreground=blanco, background=color_secundario, borderwidth=0)
-        estilo.map("TButton", background=[("active", color_primario)], relief=[("pressed", "sunken")])
-        estilo.configure("TLabel", background=fondo, font=("Segoe UI", 10))
-        estilo.configure("Titulo.TLabel", font=("Segoe UI", 18, "bold"), background=fondo, foreground=color_primario)
+        base = "#0d1117"
+        accent = "#2dffb3"
+        text = "#e6e6ef"
+        secondary_text = "#a1a1b5"
+        line = "#30363d"
+        estilo.configure("Switch.TCheckbutton", background=base, font=("Segoe UI", 11), foreground=accent)
+        estilo.configure("TButton", font=("Segoe UI", 12, "bold"), padding=12, foreground=base, background=accent, borderwidth=0, relief="flat")
+        estilo.map("TButton", background=[("active", accent), ("pressed", line)], foreground=[("active", base), ("pressed", accent)], relief=[("pressed", "groove")])
+        estilo.configure("TLabel", background=base, font=("Segoe UI", 10), foreground=text)
+        estilo.configure("Titulo.TLabel", font=("Segoe UI", 18, "bold"), background=base, foreground=accent)
+        estilo.configure("Secondary.TButton", font=("Segoe UI", 11), padding=8, foreground=accent, background=line)
+        estilo.map("Secondary.TButton", background=[("active", accent)], relief=[("pressed", "sunken")])
 
     def crear_interfaz(self):
+        # Barra superior personalizada con botones de ventana
+        barra_superior = tk.Frame(self.root, bg="#0d1117", height=56)
+        barra_superior.pack(side="top", fill="x")
+        barra_superior.pack_propagate(False)
+        # Botones de ventana
+        btn_atras = tk.Label(barra_superior, text="\U0001F519", bg="#0d1117", fg="#2dffb3", font=("Segoe UI", 18, "bold"), cursor="hand2", width=4)
+        btn_min = tk.Label(barra_superior, text="\u2796", bg="#0d1117", fg="#2dffb3", font=("Segoe UI", 18, "bold"), cursor="hand2", width=4)
+        btn_close = tk.Label(barra_superior, text="\u274C", bg="#0d1117", fg="#2dffb3", font=("Segoe UI", 18, "bold"), cursor="hand2", width=4)
+        btn_atras.pack(side="left", padx=(16,0), pady=8)
+        btn_min.pack(side="right", padx=(0,0), pady=8)
+        btn_close.pack(side="right", padx=(0,16), pady=8)
+        # Animaciones hover
+        for btn in [btn_atras, btn_min, btn_close]:
+            btn.bind("<Enter>", lambda e, b=btn: b.config(bg="#2dffb3", fg="#0d1117"))
+            btn.bind("<Leave>", lambda e, b=btn: b.config(bg="#0d1117", fg="#2dffb3"))
+            btn.bind("<ButtonPress-1>", lambda e, b=btn: b.config(bg="#a1a1b5", fg="#0d1117"))
+            btn.bind("<ButtonRelease-1>", lambda e, b=btn: b.config(bg="#2dffb3", fg="#0d1117"))
+        # Funcionalidad de los botones
+        btn_atras.bind("<Button-1>", lambda e: self.regresar_menu())
+        btn_min.bind("<Button-1>", lambda e: self.root.iconify())
+        btn_close.bind("<Button-1>", lambda e: self.root.destroy())
         # Canvas y scrollbar
-        canvas = tk.Canvas(self.root, bg="#F1F6F9", highlightthickness=0)
+        canvas = tk.Canvas(self.root, bg="#0d1117", highlightthickness=0, bd=0)
         scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=canvas.yview)
         scrollable_frame = ttk.Frame(canvas)
-
         scrollable_frame.bind(
             "<Configure>",
-            lambda e: canvas.configure(
-                scrollregion=canvas.bbox("all")
-            )
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
         )
-
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
-
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
-
-        main_frame = ttk.Frame(scrollable_frame, padding=30)
+        main_frame = ttk.Frame(scrollable_frame, padding=0, style="TFrame")
         main_frame.pack(expand=True, fill='both')
-        titulo = ttk.Label(main_frame, text="🔍 Detector de Bordes", style="Titulo.TLabel")
-        titulo.pack(pady=(10, 25))
-        btn_cargar = ttk.Button(main_frame, text="📂 Cargar Imagen", command=self.cargar_imagen)
-        btn_cargar.pack(pady=10, fill='x')
-        self.lbl_ruta = ttk.Label(main_frame, text="No se ha seleccionado ninguna imagen", wraplength=560, justify="center")
-        self.lbl_ruta.pack(pady=10)
-        self.switch_grises = ttk.Checkbutton(main_frame, text="🎨 Modo grises", variable=self.modo_grises, style="Switch.TCheckbutton")
-        self.switch_grises.pack(pady=10)
-        self.btn_procesar = ttk.Button(main_frame, text="⚙️ Procesar Imagen", command=self.procesar_imagen, state='disabled')
-        self.btn_procesar.pack(pady=10, fill='x')
-        self.btn_probar_modelo = ttk.Button(main_frame, text="🧪 Probar Modelo", command=self.probar_modelo, state='disabled')
-        self.btn_probar_modelo.pack(pady=10, fill='x')
-        self.lbl_estado = ttk.Label(main_frame, text="", wraplength=560, foreground="#1E40AF", justify="center")
-        self.lbl_estado.pack(pady=10)
-        # Botón Regresar siempre visible y activo
-        self.btn_regresar = ttk.Button(main_frame, text="Regresar", command=self.regresar_menu)
-        self.btn_regresar.pack(pady=10, fill='x')
-        self.frame_vista_previa = ttk.Frame(main_frame, padding=10)
-        self.frame_vista_previa.pack(pady=10, fill='both', expand=True)
-        self.frame_vista_previa.pack_forget()
-        self.frame_imagenes = ttk.Frame(self.frame_vista_previa)
-        self.frame_imagenes.pack(fill='both', expand=True)
-        self.frame_original = ttk.Frame(self.frame_imagenes)
-        self.frame_original.pack(side=tk.LEFT, padx=10, fill='both', expand=True)
-        ttk.Label(self.frame_original, text="Original", style="Titulo.TLabel").pack(pady=(0,10))
-        self.lbl_original = ttk.Label(self.frame_original)
-        self.lbl_original.pack(pady=10)
-        self.frame_procesada = ttk.Frame(self.frame_imagenes)
-        self.frame_procesada.pack(side=tk.LEFT, padx=10, fill='both', expand=True)
-        ttk.Label(self.frame_procesada, text="Procesada", style="Titulo.TLabel").pack(pady=(0,10))
-        self.lbl_vista_previa = ttk.Label(self.frame_procesada)
-        self.lbl_vista_previa.pack(pady=10)
-        self.frame_botones_confirmacion = ttk.Frame(self.frame_vista_previa, padding=10)
-        self.frame_botones_confirmacion.pack(pady=10)
-        self.btn_aceptar = ttk.Button(self.frame_botones_confirmacion, text="✅ Aceptar", command=self.aceptar_imagen)
-        self.btn_aceptar.pack(side=tk.LEFT, padx=10)
-        self.btn_rechazar = ttk.Button(self.frame_botones_confirmacion, text="❌ Rechazar", command=self.rechazar_imagen)
-        self.btn_rechazar.pack(side=tk.LEFT, padx=10)
+        # Centrado vertical y horizontal
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.rowconfigure(0, weight=1)
+        content_inner = ttk.Frame(main_frame, padding=40, style="TFrame")
+        content_inner.grid(row=0, column=0, sticky="nsew")
+        content_inner.columnconfigure(0, weight=1)
+        titulo = ttk.Label(content_inner, text="\U0001F50D Detector de Bordes", style="Titulo.TLabel", anchor="center", justify="center")
+        titulo.grid(row=0, column=0, pady=(30, 36), sticky="ew")
+        frame_carga = ttk.Frame(content_inner, style="TFrame")
+        frame_carga.grid(row=1, column=0, pady=16, sticky="ew")
+        frame_carga.columnconfigure((0,1), weight=1)
+        btn_cargar = ttk.Button(frame_carga, text="\U0001F4C2 Cargar Imagen", command=self.cargar_imagen, style="TButton")
+        btn_cargar.grid(row=0, column=0, padx=(0, 8), sticky="ew")
+        btn_cargar_carpeta = ttk.Button(frame_carga, text="\U0001F4C1 Cargar Carpeta", command=self.cargar_carpeta, style="TButton")
+        btn_cargar_carpeta.grid(row=0, column=1, padx=(8, 0), sticky="ew")
+        self.lbl_ruta = ttk.Label(content_inner, text="No se ha seleccionado ninguna imagen", wraplength=700, justify="center", style="TLabel")
+        self.lbl_ruta.grid(row=2, column=0, pady=12, sticky="ew")
+        self.switch_grises = ttk.Checkbutton(content_inner, text="\U0001F3A8 Modo grises", variable=self.modo_grises, style="Switch.TCheckbutton")
+        self.switch_grises.grid(row=3, column=0, pady=12, sticky="ew")
+        self.btn_procesar = ttk.Button(content_inner, text="\u2699\ufe0f Procesar Imagen", command=self.procesar_imagen, state='disabled', style="TButton")
+        self.btn_procesar.grid(row=4, column=0, pady=12, sticky="ew")
+        self.btn_probar_modelo = ttk.Button(content_inner, text="\U0001F9EA Probar Modelo", command=self.probar_modelo, state='disabled', style="TButton")
+        self.btn_probar_modelo.grid(row=5, column=0, pady=12, sticky="ew")
+        self.lbl_estado = ttk.Label(content_inner, text="", wraplength=700, foreground="#2dffb3", justify="center", style="TLabel")
+        self.lbl_estado.grid(row=6, column=0, pady=12, sticky="ew")
+        self.btn_regresar = ttk.Button(content_inner, text="Regresar", command=self.regresar_menu, style="Secondary.TButton")
+        self.btn_regresar.grid(row=7, column=0, pady=16, sticky="ew")
+        # Crear el frame para la vista previa
+        self.frame_vista_previa = ttk.Frame(content_inner, style="TFrame")
+        self.frame_vista_previa.grid(row=8, column=0, pady=16, sticky="nsew")
+        self.frame_vista_previa.grid_remove()  # Inicialmente oculto
+        
+        # Modificación: asegurarnos de usar grid consistentemente
+        self.frame_imagenes = ttk.Frame(self.frame_vista_previa, style="TFrame")
+        self.frame_imagenes.grid(row=0, column=0, sticky="nsew")
+        
+        self.frame_original = ttk.Frame(self.frame_imagenes, style="TFrame")
+        self.frame_original.grid(row=0, column=0, padx=16, sticky="nsew")
+        ttk.Label(self.frame_original, text="Original", style="Titulo.TLabel").grid(row=0, column=0, pady=(0,12))
+        self.lbl_original = ttk.Label(self.frame_original, style="TLabel")
+        self.lbl_original.grid(row=1, column=0, pady=12)
+        
+        self.frame_procesada = ttk.Frame(self.frame_imagenes, style="TFrame")
+        self.frame_procesada.grid(row=0, column=1, padx=16, sticky="nsew")
+        ttk.Label(self.frame_procesada, text="Procesada", style="Titulo.TLabel").grid(row=0, column=0, pady=(0,12))
+        self.lbl_vista_previa = ttk.Label(self.frame_procesada, style="TLabel")
+        self.lbl_vista_previa.grid(row=1, column=0, pady=12)
+        
+        self.frame_botones_confirmacion = ttk.Frame(self.frame_vista_previa, style="TFrame")
+        self.frame_botones_confirmacion.grid(row=1, column=0, pady=12)
+        
+        self.btn_aceptar = ttk.Button(self.frame_botones_confirmacion, text="\u2705 Aceptar", command=self.aceptar_imagen, style="TButton")
+        self.btn_aceptar.grid(row=0, column=0, padx=16)
+        
+        self.btn_rechazar = ttk.Button(self.frame_botones_confirmacion, text="\u274C Rechazar", command=self.rechazar_imagen, style="TButton")
+        self.btn_rechazar.grid(row=0, column=1, padx=16)
 
     def cargar_imagen(self):
         from tkinter import filedialog
@@ -109,6 +142,65 @@ class DetectorBordesGUI:
                 self.lbl_estado.config(text="✅ Imagen lista para procesar")
         except Exception as e:
             messagebox.showerror("Error", f"❌ Error al cargar la imagen:\n{str(e)}")
+
+    def cargar_carpeta(self):
+        """
+        Permite al usuario seleccionar una carpeta y procesar todas las imágenes en ella.
+        """
+        try:
+            # Solicitar al usuario la carpeta
+            ruta_carpeta = self.file_manager.seleccionar_carpeta()
+            
+            if not ruta_carpeta:
+                return  # El usuario canceló la selección
+            
+            # Obtener lista de imágenes en la carpeta
+            rutas_imagenes = self.file_manager.obtener_imagenes_de_carpeta(ruta_carpeta)
+            
+            if not rutas_imagenes:
+                messagebox.showinfo("Información", "No se encontraron imágenes en la carpeta seleccionada.")
+                return
+            
+            # Preguntar al usuario si desea proceder
+            respuesta = messagebox.askyesno(
+                "Procesar carpeta", 
+                f"Se encontraron {len(rutas_imagenes)} imágenes en la carpeta.\n¿Desea procesar todas las imágenes?"
+            )
+            
+            if not respuesta:
+                return
+            
+            # Preguntar si desea convertir a escala de grises
+            aplicar_grises = messagebox.askyesno(
+                "Modo grises", 
+                "¿Desea aplicar el modo escala de grises a todas las imágenes procesadas?"
+            )
+            
+            # Definir función de procesamiento
+            def procesar_funcion(ruta_imagen):
+                try:
+                    resultado = self.image_processor.procesar_imagen_completa(ruta_imagen)
+                    imagen_procesada = resultado['imagen_A4'].copy()
+                    
+                    # Aplicar escala de grises si es necesario
+                    if aplicar_grises:
+                        from img_proc.esc_grises import convertir_a_grises
+                        imagen_procesada = convertir_a_grises(imagen_procesada)
+                    
+                    return imagen_procesada
+                except Exception as e:
+                    print(f"Error al procesar {ruta_imagen}: {e}")
+                    raise
+            
+            # Iniciar procesamiento
+            self.lbl_estado.config(text=f"⏳ Procesando {len(rutas_imagenes)} imágenes...")
+            self.file_manager.procesar_carpeta(ruta_carpeta, procesar_funcion)
+            
+            # Actualizar estado
+            self.lbl_estado.config(text=f"✅ Procesamiento de carpeta completado.")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"❌ Error al procesar la carpeta:\n{str(e)}")
 
     def procesar_imagen(self):
         try:
@@ -180,6 +272,8 @@ class DetectorBordesGUI:
         import cv2
         import numpy as np
         from PIL import Image, ImageTk
+        
+        # Mostrar la imagen original
         imagen_original = cv2.imread(self.imagen_path)
         imagen_original_rgb = cv2.cvtColor(imagen_original, cv2.COLOR_BGR2RGB)
         alto_orig, ancho_orig = imagen_original_rgb.shape[:2]
@@ -196,6 +290,8 @@ class DetectorBordesGUI:
         imagen_original_tk = ImageTk.PhotoImage(imagen_original_pil)
         self.lbl_original.config(image=imagen_original_tk)
         self.lbl_original.image = imagen_original_tk
+        
+        # Mostrar la imagen procesada
         if isinstance(imagen, np.ndarray):
             imagen_mostrar = imagen.copy()
             if self.modo_grises.get():
@@ -220,13 +316,17 @@ class DetectorBordesGUI:
             imagen_tk = ImageTk.PhotoImage(imagen_pil)
         else:
             imagen_tk = ImageTk.PhotoImage(imagen)
+            
         self.lbl_vista_previa.config(image=imagen_tk)
         self.lbl_vista_previa.image = imagen_tk
-        self.frame_vista_previa.pack(pady=10, fill='both', expand=True)
+        
+        # Mostrar el marco de vista previa
+        self.frame_vista_previa.grid()  # Usar grid en lugar de pack
         self.lbl_estado.config(text="✅ Imagen procesada. Confirme para guardar.")
-        # Botón para regresar al menú principal
-        btn_back = tk.Button(self.frame_vista_previa, text="Regresar", command=self.regresar_menu, font=("Segoe UI", 12, "bold"), bg="#64748B", fg="#FFF")
-        btn_back.pack(pady=10)
+        
+        # ELIMINADO: este botón estaba usando pack en lugar de grid
+        # btn_back = tk.Button(self.frame_vista_previa, text="Regresar", command=self.regresar_menu, font=("Segoe UI", 12, "bold"), bg="#64748B", fg="#FFF")
+        # btn_back.pack(pady=10)  # esto causa el conflicto de gestores de geometría
 
     def limpiar_estado(self):
         self.imagen_path = None
@@ -237,7 +337,7 @@ class DetectorBordesGUI:
         self.btn_procesar.config(state='disabled')
         self.lbl_ruta.config(text="No se ha seleccionado ninguna imagen")
         self.switch_grises.config(state='enable')
-        self.frame_vista_previa.pack_forget()
+        self.frame_vista_previa.grid_remove()  # Usar grid_remove en lugar de pack_forget
 
     def aceptar_imagen(self):
         self.confirmar_guardado(self.info_imagen_raw, self.info_resultado)
@@ -246,7 +346,6 @@ class DetectorBordesGUI:
     def rechazar_imagen(self):
         self.cancelar_guardado()
         self.limpiar_estado()
-        self.frame_vista_previa.pack_forget()
 
     def regresar_menu(self):
         self.root.destroy()

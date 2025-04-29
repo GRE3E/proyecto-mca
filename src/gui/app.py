@@ -28,7 +28,8 @@ class ModelTestApp:
         self.root = tk.Tk()
         self.root.title("Clasificador de Caña de Azúcar")
         self.root.geometry("1000x800")
-        self.root.configure(bg="#f0f2f5")
+        self.root.attributes('-fullscreen', True)
+        self.root.configure(bg="#0d1117")
         self.class_names = get_class_names()
         self.pixel_to_cm_ratio = 10.0  # Valor predeterminado: 10 píxeles = 1 cm
         self.processed_img_path = None
@@ -41,24 +42,40 @@ class ModelTestApp:
         """Configura los estilos de la interfaz"""
         style = ttk.Style()
         style.theme_use("clam")
-        style.configure("Title.TLabel", font=("Segoe UI", 18, "bold"), foreground="#1E40AF", background="#f0f2f5")
-        style.configure("Subtitle.TLabel", font=("Segoe UI", 14, "bold"), foreground="#2563EB", background="#f0f2f5")
-        style.configure("Normal.TLabel", font=("Segoe UI", 12), background="#f0f2f5")
-        style.configure("Result.TLabel", font=("Segoe UI", 12), background="#f0f2f5", foreground="#047857")
-        style.configure("Accent.TButton", font=("Segoe UI", 12, "bold"), padding=10, foreground="#FFFFFF", background="#1E40AF")
+        style.configure("Title.TLabel", font=("Segoe UI", 18, "bold"), foreground="#e6e6ef", background="#0d1117")
+        style.configure("Subtitle.TLabel", font=("Segoe UI", 14, "bold"), foreground="#a1a1b5", background="#0d1117")
+        style.configure("Normal.TLabel", font=("Segoe UI", 12), foreground="#e6e6ef", background="#0d1117")
+        style.configure("Result.TLabel", font=("Segoe UI", 12), background="#0d1117", foreground="#2dffb3")
+        style.configure("Accent.TButton", font=("Segoe UI", 12, "bold"), padding=10, foreground="#0d1117", background="#2dffb3")
         style.map("Accent.TButton", background=[("active", "#3B82F6")])
-        style.configure("Secondary.TButton", font=("Segoe UI", 11), padding=8, foreground="#1E40AF", background="#f0f2f5")
+        style.configure("Secondary.TButton", font=("Segoe UI", 11), padding=8, foreground="#0d1117", background="#2dffb3")
         style.map("Secondary.TButton", background=[("active", "#DBEAFE")])
-        style.configure("TFrame", background="#f0f2f5")
-        style.configure("Card.TFrame", background="#FFFFFF", relief="solid", borderwidth=1)
-        style.configure("TNotebook", background="#f0f2f5", tabposition="n")
-        style.configure("TNotebook.Tab", font=("Segoe UI", 12), padding=[12, 4], background="#FFFFFF")
-        style.map("TNotebook.Tab", background=[("selected", "#1E40AF")], foreground=[("selected", "#FFFFFF")])
+        style.configure("TFrame", background="#0d1117")
+        style.configure("Card.TFrame", background="#30363d", relief="solid", borderwidth=1)
+        style.configure("TNotebook", background="#0d1117", tabposition="n")
+        style.configure("TNotebook.Tab", font=("Segoe UI", 12), padding=[12, 4], background="#2dffb3", foreground="#0d1117")
+        style.map("TNotebook.Tab", background=[("selected", "#2dffb3")], foreground=[("selected", "#0d1117")])
 
     def setup_ui(self):
         """Configura la interfaz de usuario"""
         # Estilos
         self.setup_styles()
+        
+        # Botones de ventana
+        btn_frame = ttk.Frame(self.root)
+        btn_frame.pack(fill="x", side="top", anchor="ne", padx=10, pady=10)
+
+        btn_back = ttk.Button(btn_frame, text="🔙", command=self.root.quit,
+                           style="Accent.TButton", width=3)
+        btn_back.pack(side="right", padx=5)
+
+        btn_min = ttk.Button(btn_frame, text="➖", command=self.root.iconify,
+                          style="Accent.TButton", width=3)
+        btn_min.pack(side="right", padx=5)
+
+        btn_close = ttk.Button(btn_frame, text="❌", command=self.root.destroy,
+                            style="Accent.TButton", width=3)
+        btn_close.pack(side="right", padx=5)
         
         # Frame principal
         main_frame = ttk.Frame(self.root, padding=20)
@@ -161,6 +178,11 @@ class ModelTestApp:
         btn_back = ttk.Button(button_frame, text="Volver al menú principal", 
                             command=self.return_to_main, style="Secondary.TButton")
         btn_back.pack(side=tk.RIGHT, padx=10)
+
+        # Botón para exportar resultados a JSON
+        btn_export = ttk.Button(button_frame, text="Exportar JSON", 
+                            command=self.export_to_json, style="Accent.TButton")
+        btn_export.pack(side=tk.RIGHT, padx=10)
 
     def update_ratio(self):
         """Actualiza la relación píxeles/cm y recalcula si hay una predicción"""
@@ -329,6 +351,34 @@ class ModelTestApp:
             subprocess.Popen([sys.executable, app_main_path])
         except Exception as e:
             print(f"Error al volver al menú principal: {e}")
+
+    def export_to_json(self):
+        """Exporta los resultados de las mediciones a un archivo JSON"""
+        if not self.prediction_result:
+            messagebox.showwarning("Advertencia", "No hay resultados para exportar")
+            return
+
+        # Obtener la ruta para guardar el archivo
+        filetypes = [("Archivos JSON", "*.json")]
+        save_path = filedialog.asksaveasfilename(defaultextension=".json", 
+                                              filetypes=filetypes)
+        if not save_path:
+            return
+
+        try:
+            # Crear estructura de datos para exportar
+            export_data = {
+                "Caña": self.prediction_result.get("Caña", {}),
+                "Mediciones": self.prediction_result.get("Mediciones", [])
+            }
+
+            # Escribir archivo JSON
+            with open(save_path, 'w') as f:
+                json.dump(export_data, f, indent=4)
+
+            messagebox.showinfo("Éxito", f"Datos exportados correctamente a {save_path}")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo exportar el archivo: {e}")
 
     def cleanup(self):
         """Limpia archivos temporales"""

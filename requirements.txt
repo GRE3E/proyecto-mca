@@ -13,4 +13,5 @@ tk==0.1.0
 
 # Testing
 pytest==7.4.2
+pyttsx3
 

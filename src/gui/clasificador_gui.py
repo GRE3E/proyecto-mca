@@ -16,7 +16,8 @@ class ClasificadorGUI:
         self.root = tk.Tk()
         self.root.title("Clasificador de Caña de Azúcar")
         self.root.geometry("1200x800")
-        self.root.configure(bg="#F1F6F9")
+        self.root.attributes('-fullscreen', True)
+        self.root.configure(bg="#0d1117")
         
         # Variables
         self.imagen_path = None
@@ -31,68 +32,99 @@ class ClasificadorGUI:
     def _build_ui(self):
         # Título principal
         titulo = tk.Label(self.root, text="Clasificador de Caña de Azúcar", 
-                         font=("Segoe UI", 24, "bold"), bg="#F1F6F9", fg="#1E40AF")
+                         font=("Segoe UI", 24, "bold"), bg="#0d1117", fg="#e6e6ef")
         titulo.pack(pady=(20, 30))
+
+        # Botones de ventana
+        btn_frame = tk.Frame(self.root, bg="#0d1117")
+        btn_frame.pack(fill="x", side="top", anchor="ne", padx=10, pady=10)
+
+        btn_back = tk.Button(btn_frame, text="🔙", command=self.root.quit,
+                           font=("Segoe UI", 12), bg="#2dffb3", fg="#0d1117",
+                           width=3, relief="flat")
+        btn_back.pack(side="right", padx=5)
+
+        btn_min = tk.Button(btn_frame, text="➖", command=self.root.iconify,
+                          font=("Segoe UI", 12), bg="#2dffb3", fg="#0d1117",
+                          width=3, relief="flat")
+        btn_min.pack(side="right", padx=5)
+
+        btn_close = tk.Button(btn_frame, text="❌", command=self.root.destroy,
+                            font=("Segoe UI", 12), bg="#2dffb3", fg="#0d1117",
+                            width=3, relief="flat")
+        btn_close.pack(side="right", padx=5)
         
         # Panel de configuración
-        panel_config = tk.Frame(self.root, bg="#F1F6F9", bd=1, relief="solid")
+        panel_config = tk.Frame(self.root, bg="#0d1117", bd=1, relief="solid")
         panel_config.pack(fill="x", padx=20, pady=10)
         
         # Relación Píxel-Centímetro
         tk.Label(panel_config, text="Relación Píxel-Centímetro:", 
-                font=("Segoe UI", 12), bg="#F1F6F9").pack(side="left", padx=10, pady=10)
+                font=("Segoe UI", 12), bg="#0d1117", fg="#e6e6ef").pack(side="left", padx=10, pady=10)
         
         entry_relacion = tk.Entry(panel_config, textvariable=self.relacion_pixel_cm, 
                                  width=10, font=("Segoe UI", 12))
         entry_relacion.pack(side="left", padx=5, pady=10)
         
         tk.Label(panel_config, text="píxeles/cm", 
-                font=("Segoe UI", 12), bg="#F1F6F9").pack(side="left", padx=5, pady=10)
+                font=("Segoe UI", 12), bg="#0d1117", fg="#e6e6ef").pack(side="left", padx=5, pady=10)
         
         btn_actualizar = tk.Button(panel_config, text="Actualizar", 
                                   command=self.actualizar_relacion,
-                                  font=("Segoe UI", 12), bg="#3B82F6", fg="white")
+                                  font=("Segoe UI", 12), bg="#2dffb3", fg="#0d1117")
         btn_actualizar.pack(side="left", padx=20, pady=10)
         
         # Notebook (pestañas)
-        self.notebook = ttk.Notebook(self.root)
+        self.notebook = ttk.Notebook(self.root, style="Custom.TNotebook")
+        style = ttk.Style()
+        style.configure("Custom.TNotebook", background="#0d1117")
+        style.configure("Custom.TNotebook.Tab", background="#2dffb3", foreground="#0d1117", padding=[10, 5])
         self.notebook.pack(fill="both", expand=True, padx=20, pady=10)
         
         # Pestaña Imagen
-        self.tab_imagen = ttk.Frame(self.notebook)
+        self.tab_imagen = ttk.Frame(self.notebook, style='Custom.TFrame')
         self.notebook.add(self.tab_imagen, text="Imagen")
         
         # Pestaña Resultados
-        self.tab_resultados = ttk.Frame(self.notebook)
+        self.tab_resultados = ttk.Frame(self.notebook, style='Custom.TFrame')
         self.notebook.add(self.tab_resultados, text="Resultados")
         
+        # Configurar estilo de los frames
+        style.configure('Custom.TFrame', background='#0d1117')
+        style.configure('Custom.TNotebook', background='#0d1117', borderwidth=0)
+        style.configure('Custom.TNotebook.Tab', background='#2dffb3', foreground='#0d1117',
+                        padding=[10, 5], borderwidth=0)
+        style.map('Custom.TNotebook.Tab',
+                  background=[('selected', '#2dffb3'), ('!selected', '#30363d')],
+                  foreground=[('selected', '#0d1117'), ('!selected', '#e6e6ef')])
+        
         # Contenido de la pestaña Imagen
-        self.frame_imagen = tk.Frame(self.tab_imagen, bg="white")
+        self.frame_imagen = tk.Frame(self.tab_imagen, bg="#0d1117")
         self.frame_imagen.pack(fill="both", expand=True, padx=10, pady=10)
         
         self.lbl_instruccion = tk.Label(self.frame_imagen, 
                                       text="Seleccione una imagen para predicción",
-                                      font=("Segoe UI", 14), bg="white", fg="#1E40AF")
+                                      font=("Segoe UI", 14), bg="#0d1117", fg="#e6e6ef")
         self.lbl_instruccion.pack(pady=20)
         
         self.lbl_confianza = tk.Label(self.frame_imagen, 
                                     text="Confianza: N/A",
-                                    font=("Segoe UI", 12), bg="white", fg="#64748B")
+                                    font=("Segoe UI", 12), bg="#0d1117", fg="#a1a1b5")
         self.lbl_confianza.pack(pady=10)
         
-        self.lbl_imagen = tk.Label(self.frame_imagen, bg="white")
+        self.lbl_imagen = tk.Label(self.frame_imagen, bg="#0d1117")
         self.lbl_imagen.pack(pady=20, expand=True)
         
         # Contenido de la pestaña Resultados
-        self.frame_resultados = tk.Frame(self.tab_resultados, bg="white")
+        self.frame_resultados = tk.Frame(self.tab_resultados, bg="#0d1117")
         self.frame_resultados.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Crear un Canvas con Scrollbar para los resultados
-        self.canvas_resultados = tk.Canvas(self.frame_resultados, bg="white")
+        self.canvas_resultados = tk.Canvas(self.frame_resultados, bg="#0d1117")
         scrollbar = ttk.Scrollbar(self.frame_resultados, orient="vertical", 
                                  command=self.canvas_resultados.yview)
         
-        self.panel_resultados = tk.Frame(self.canvas_resultados, bg="white")
+        self.panel_resultados = tk.Frame(self.canvas_resultados, bg="#0d1117")
         self.panel_resultados.bind(
             "<Configure>",
             lambda e: self.canvas_resultados.configure(scrollregion=self.canvas_resultados.bbox("all"))
@@ -105,27 +137,27 @@ class ClasificadorGUI:
         scrollbar.pack(side="right", fill="y")
         
         # Panel de botones
-        panel_botones = tk.Frame(self.root, bg="#F1F6F9")
+        panel_botones = tk.Frame(self.root, bg="#0d1117")
         panel_botones.pack(fill="x", pady=20, padx=20)
         
         # Botón Seleccionar imagen
         btn_seleccionar = tk.Button(panel_botones, text="Seleccionar imagen", 
                                    command=self.seleccionar_imagen,
-                                   font=("Segoe UI", 12, "bold"), bg="#1E40AF", fg="white", 
+                                   font=("Segoe UI", 12, "bold"), bg="#2dffb3", fg="#0d1117", 
                                    width=18)
         btn_seleccionar.pack(side="left", padx=5)
         
         # Botón Probar modelo
         self.btn_probar = tk.Button(panel_botones, text="Probar modelo", 
                                   command=self.probar_modelo,
-                                  font=("Segoe UI", 12, "bold"), bg="#22C55E", fg="white", 
+                                  font=("Segoe UI", 12, "bold"), bg="#2dffb3", fg="#0d1117", 
                                   width=15, state="disabled")
         self.btn_probar.pack(side="left", padx=5)
         
         # Botón Volver al menú principal
         btn_volver = tk.Button(panel_botones, text="Volver al menú principal", 
                               command=self.volver_menu,
-                              font=("Segoe UI", 12, "bold"), bg="#64748B", fg="white", 
+                              font=("Segoe UI", 12, "bold"), bg="#2dffb3", fg="#0d1117", 
                               width=18)
         btn_volver.pack(side="right", padx=5)
     
@@ -232,81 +264,81 @@ class ClasificadorGUI:
         if 'Caña' in resultados and resultados['Caña'] is not False:
             # Título
             tk.Label(self.panel_resultados, text="Resultados del Análisis", 
-                    font=("Segoe UI", 16, "bold"), bg="white", fg="#1E40AF").pack(pady=(10, 20))
+                    font=("Segoe UI", 16, "bold"), bg="#0d1117", fg="#e6e6ef").pack(pady=(10, 20))
             
             # Medidas principales
-            frame_medidas = tk.Frame(self.panel_resultados, bg="white")
+            frame_medidas = tk.Frame(self.panel_resultados, bg="#0d1117", bd=1, relief="solid")
             frame_medidas.pack(fill="x", padx=20, pady=10)
             
             tk.Label(frame_medidas, text="Medidas Principales", 
-                    font=("Segoe UI", 14, "bold"), bg="white", fg="#1E40AF").pack(anchor="w")
+                    font=("Segoe UI", 14, "bold"), bg="#0d1117", fg="#e6e6ef").pack(anchor="w")
             
             # Altura
             if 'AltoRecto_cm' in resultados['Caña']:
                 alto_recto = resultados['Caña']['AltoRecto_cm']
                 tk.Label(frame_medidas, text=f"Altura recta: {alto_recto:.2f} cm", 
-                        font=("Segoe UI", 12), bg="white").pack(anchor="w", pady=2)
+                        font=("Segoe UI", 12), bg="#0d1117", fg="#a1a1b5").pack(anchor="w", pady=2)
             
             if 'AltoCurvo_cm' in resultados['Caña']:
                 alto_curvo = resultados['Caña']['AltoCurvo_cm']
                 tk.Label(frame_medidas, text=f"Altura curva: {alto_curvo:.2f} cm", 
-                        font=("Segoe UI", 12), bg="white").pack(anchor="w", pady=2)
+                        font=("Segoe UI", 12), bg="#0d1117", fg="#a1a1b5").pack(anchor="w", pady=2)
             
             # Confianza
             if 'Confianza' in resultados['Caña']:
                 confianza = resultados['Caña']['Confianza'] * 100
                 tk.Label(frame_medidas, text=f"Confianza: {confianza:.2f}%", 
-                        font=("Segoe UI", 12), bg="white").pack(anchor="w", pady=2)
+                        font=("Segoe UI", 12), bg="#0d1117", fg="#a1a1b5").pack(anchor="w", pady=2)
             
             # Mediciones de nudos y entrenudos
             if 'Mediciones' in resultados and resultados['Mediciones']:
                 # Título de mediciones
                 tk.Label(self.panel_resultados, text="Mediciones de Nudos y Entrenudos", 
-                        font=("Segoe UI", 14, "bold"), bg="white", fg="#22C55E").pack(pady=(20, 10))
+                        font=("Segoe UI", 14, "bold"), bg="#0d1117", fg="#e6e6ef").pack(pady=(20, 10))
                 
                 # Tabla de mediciones
-                frame_tabla = tk.Frame(self.panel_resultados, bg="white")
+                frame_tabla = tk.Frame(self.panel_resultados, bg="#0d1117", bd=1, relief="solid")
                 frame_tabla.pack(fill="x", padx=20, pady=10)
                 
                 # Encabezados
                 tk.Label(frame_tabla, text="Nº", width=5, font=("Segoe UI", 12, "bold"), 
-                        bg="#E5E7EB").grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
+                        bg="#30363d", fg="#e6e6ef").grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
                 tk.Label(frame_tabla, text="Nudo Largo (cm)", width=15, font=("Segoe UI", 12, "bold"), 
-                        bg="#E5E7EB").grid(row=0, column=1, padx=2, pady=2, sticky="nsew")
+                        bg="#30363d", fg="#e6e6ef").grid(row=0, column=1, padx=2, pady=2, sticky="nsew")
                 tk.Label(frame_tabla, text="Nudo Ancho (cm)", width=15, font=("Segoe UI", 12, "bold"), 
-                        bg="#E5E7EB").grid(row=0, column=2, padx=2, pady=2, sticky="nsew")
+                        bg="#30363d", fg="#e6e6ef").grid(row=0, column=2, padx=2, pady=2, sticky="nsew")
                 tk.Label(frame_tabla, text="Entrenudo Largo (cm)", width=20, font=("Segoe UI", 12, "bold"), 
-                        bg="#E5E7EB").grid(row=0, column=3, padx=2, pady=2, sticky="nsew")
+                        bg="#30363d", fg="#e6e6ef").grid(row=0, column=3, padx=2, pady=2, sticky="nsew")
                 tk.Label(frame_tabla, text="Entrenudo Ancho (cm)", width=20, font=("Segoe UI", 12, "bold"), 
-                        bg="#E5E7EB").grid(row=0, column=4, padx=2, pady=2, sticky="nsew")
+                        bg="#30363d", fg="#e6e6ef").grid(row=0, column=4, padx=2, pady=2, sticky="nsew")
                 
                 # Datos
                 for i, medicion in enumerate(resultados['Mediciones']):
-                    bg_color = "#F9FAFB" if i % 2 == 0 else "white"
+                    bg_color = "#30363d" if i % 2 == 0 else "#0d1117"
                     
                     tk.Label(frame_tabla, text=f"{i+1}", font=("Segoe UI", 12), 
-                            bg=bg_color).grid(row=i+1, column=0, padx=2, pady=2, sticky="nsew")
+                            bg=bg_color, fg="#a1a1b5").grid(row=i+1, column=0, padx=2, pady=2, sticky="nsew")
                     
                     tk.Label(frame_tabla, text=f"{medicion['Nudo_Largo_cm']:.2f}", font=("Segoe UI", 12), 
-                            bg=bg_color).grid(row=i+1, column=1, padx=2, pady=2, sticky="nsew")
+                            bg=bg_color, fg="#a1a1b5").grid(row=i+1, column=1, padx=2, pady=2, sticky="nsew")
                     
                     tk.Label(frame_tabla, text=f"{medicion['Nudo_Ancho_cm']:.2f}", font=("Segoe UI", 12), 
-                            bg=bg_color).grid(row=i+1, column=2, padx=2, pady=2, sticky="nsew")
+                            bg=bg_color, fg="#a1a1b5").grid(row=i+1, column=2, padx=2, pady=2, sticky="nsew")
                     
                     tk.Label(frame_tabla, text=f"{medicion['Entrenudo_Largo_cm']:.2f}", font=("Segoe UI", 12), 
-                            bg=bg_color).grid(row=i+1, column=3, padx=2, pady=2, sticky="nsew")
+                            bg=bg_color, fg="#a1a1b5").grid(row=i+1, column=3, padx=2, pady=2, sticky="nsew")
                     
                     tk.Label(frame_tabla, text=f"{medicion['Entrenudo_Ancho_cm']:.2f}", font=("Segoe UI", 12), 
-                            bg=bg_color).grid(row=i+1, column=4, padx=2, pady=2, sticky="nsew")
+                            bg=bg_color, fg="#a1a1b5").grid(row=i+1, column=4, padx=2, pady=2, sticky="nsew")
         else:
             # No es una caña
             tk.Label(self.panel_resultados, text="La imagen no contiene una caña de azúcar", 
-                    font=("Segoe UI", 16, "bold"), bg="white", fg="#EF4444").pack(pady=20)
+                    font=("Segoe UI", 16, "bold"), bg="#0d1117", fg="#2dffb3").pack(pady=20)
             
             if 'Confianza' in resultados['Caña']:
                 confianza = resultados['Caña']['Confianza'] * 100
                 tk.Label(self.panel_resultados, text=f"Confianza: {confianza:.2f}%", 
-                        font=("Segoe UI", 12), bg="white").pack(pady=10)
+                        font=("Segoe UI", 12), bg="#0d1117", fg="#a1a1b5").pack(pady=10)
     
     def volver_menu(self):
         """Cierra la ventana actual y vuelve al menú principal"""

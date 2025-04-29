@@ -11,44 +11,66 @@ class MedicionesGUI:
     def __init__(self):
         self.root = tk.Toplevel()
         self.root.title("Medición de Caña de Azúcar")
-        self.root.geometry("1200x1200")
-        self.root.configure(bg="#F1F6F9")
+        self.root.attributes('-fullscreen', True)
+        self.root.configure(bg="#0d1117")
         self.resultados = None
         self._build_ui()
         self.root.mainloop()
 
     def _build_ui(self):
+        # Barra superior personalizada con botones de ventana
+        barra_superior = tk.Frame(self.root, bg="#0d1117", height=56)
+        barra_superior.pack(side="top", fill="x")
+        barra_superior.pack_propagate(False)
+        # Botones de ventana
+        btn_atras = tk.Label(barra_superior, text="\U0001F519", bg="#0d1117", fg="#2dffb3", font=("Segoe UI", 18, "bold"), cursor="hand2", width=4)
+        btn_min = tk.Label(barra_superior, text="\u2796", bg="#0d1117", fg="#2dffb3", font=("Segoe UI", 18, "bold"), cursor="hand2", width=4)
+        btn_close = tk.Label(barra_superior, text="\u274C", bg="#0d1117", fg="#2dffb3", font=("Segoe UI", 18, "bold"), cursor="hand2", width=4)
+        btn_atras.pack(side="left", padx=(16,0), pady=8)
+        btn_min.pack(side="right", padx=(0,0), pady=8)
+        btn_close.pack(side="right", padx=(0,16), pady=8)
+        # Animaciones hover
+        for btn in [btn_atras, btn_min, btn_close]:
+            btn.bind("<Enter>", lambda e, b=btn: b.config(bg="#2dffb3", fg="#0d1117"))
+            btn.bind("<Leave>", lambda e, b=btn: b.config(bg="#0d1117", fg="#2dffb3"))
+            btn.bind("<ButtonPress-1>", lambda e, b=btn: b.config(bg="#a1a1b5", fg="#0d1117"))
+            btn.bind("<ButtonRelease-1>", lambda e, b=btn: b.config(bg="#2dffb3", fg="#0d1117"))
+        # Funcionalidad de los botones
+        btn_atras.bind("<Button-1>", lambda e: self.root.destroy())
+        btn_min.bind("<Button-1>", lambda e: self.root.iconify())
+        btn_close.bind("<Button-1>", lambda e: self.root.destroy())
+
         # Título principal
-        titulo = tk.Label(self.root, text="Medición de Caña de Azúcar", font=("Segoe UI", 24, "bold"), bg="#F1F6F9", fg="#1E40AF")
-        titulo.pack(pady=(20, 30))
+        titulo = tk.Label(self.root, text="Medición de Caña de Azúcar", font=("Segoe UI", 24, "bold"), bg="#0d1117", fg="#e6e6ef")
+        titulo.pack(pady=(10, 20))
 
         # Contenedor principal de tres columnas
-        main_container = tk.Frame(self.root, bg="#F1F6F9")
+        main_container = tk.Frame(self.root, bg="#0d1117")
         main_container.pack(expand=True, fill="both", padx=20)
 
         # Columna 1: Imagen Original
-        col1 = tk.Frame(main_container, bg="#FFFFFF", bd=1, relief="solid")
-        col1.pack(side="left", fill="both", expand=True, padx=10)
-        tk.Label(col1, text="Imagen Original", font=("Segoe UI", 14, "bold"), bg="#FFFFFF", fg="#1E40AF").pack(pady=10)
-        self.original_label = tk.Label(col1, bg="#FFFFFF")
+        col1 = tk.Frame(main_container, bg="#161b22", bd=1, relief="solid", highlightbackground="#30363d", highlightthickness=1)
+        col1.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        tk.Label(col1, text="Imagen Original", font=("Segoe UI", 14, "bold"), bg="#161b22", fg="#2dffb3").pack(pady=10)
+        self.original_label = tk.Label(col1, bg="#161b22")
         self.original_label.pack(pady=10, padx=10)
 
         # Columna 2: Imagen Procesada
-        col2 = tk.Frame(main_container, bg="#FFFFFF", bd=1, relief="solid")
-        col2.pack(side="left", fill="both", expand=True, padx=10)
-        tk.Label(col2, text="Imagen Procesada", font=("Segoe UI", 14, "bold"), bg="#FFFFFF", fg="#1E40AF").pack(pady=10)
-        self.image_label = tk.Label(col2, bg="#FFFFFF")
+        col2 = tk.Frame(main_container, bg="#161b22", bd=1, relief="solid", highlightbackground="#30363d", highlightthickness=1)
+        col2.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        tk.Label(col2, text="Imagen Procesada", font=("Segoe UI", 14, "bold"), bg="#161b22", fg="#2dffb3").pack(pady=10)
+        self.image_label = tk.Label(col2, bg="#161b22")
         self.image_label.pack(pady=10, padx=10)
 
         # Columna 3: Resultados de Medición con Scrollbar
-        col3 = tk.Frame(main_container, bg="#FFFFFF", bd=1, relief="solid")
-        col3.pack(side="left", fill="both", expand=True, padx=10)
-        tk.Label(col3, text="Resultados de Medición", font=("Segoe UI", 14, "bold"), bg="#FFFFFF", fg="#1E40AF").pack(pady=10)
+        col3 = tk.Frame(main_container, bg="#161b22", bd=1, relief="solid", highlightbackground="#30363d", highlightthickness=1)
+        col3.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        tk.Label(col3, text="Resultados de Medición", font=("Segoe UI", 14, "bold"), bg="#161b22", fg="#2dffb3").pack(pady=10)
 
         # Crear un Canvas con Scrollbar
-        canvas = tk.Canvas(col3, bg="#FFFFFF")
+        canvas = tk.Canvas(col3, bg="#161b22", highlightthickness=0, bd=0)
         scrollbar = tk.Scrollbar(col3, orient="vertical", command=canvas.yview)
-        self.panel_resultados = tk.Frame(canvas, bg="#FFFFFF")
+        self.panel_resultados = tk.Frame(canvas, bg="#161b22")
 
         # Configurar el Canvas y el Scrollbar
         self.panel_resultados.bind(
@@ -63,44 +85,27 @@ class MedicionesGUI:
         scrollbar.pack(side="right", fill="y")
 
         # Panel de configuración
-        panel_config = tk.Frame(self.root, bg="#F1F6F9")
+        panel_config = tk.Frame(self.root, bg="#0d1117")
         panel_config.pack(fill="x", pady=10, padx=20)
-        
-        # Información de escala actualizada
-        tk.Label(panel_config, text=f"Escala: {ESCALA_CM_POR_PIXEL_NUEVA:.4f} cm/píxel", 
-                font=("Segoe UI", 12), bg="#F1F6F9", fg="#1E40AF").pack(side="left", padx=5)
+        tk.Label(panel_config, text=f"Escala: {ESCALA_CM_POR_PIXEL_NUEVA:.4f} cm/píxel", font=("Segoe UI", 12), bg="#0d1117", fg="#e6e6ef").pack(side="left", padx=5)
 
         # Panel de botones
-        panel_botones = tk.Frame(self.root, bg="#F1F6F9")
+        panel_botones = tk.Frame(self.root, bg="#0d1117")
         panel_botones.pack(fill="x", pady=20, padx=20)
-
-        # Botón Cargar Imagen
-        btn_cargar = tk.Button(panel_botones, text="Cargar Imagen", command=self.select_image,
-                             font=("Segoe UI", 12, "bold"), bg="#1E40AF", fg="#FFF", width=15)
+        btn_cargar = tk.Button(panel_botones, text="Cargar Imagen", command=self.select_image, font=("Segoe UI", 12, "bold"), bg="#2dffb3", fg="#0d1117", width=15, relief="flat", activebackground="#a1a1b5", activeforeground="#0d1117")
         btn_cargar.pack(side="left", padx=5)
-
-        # Botón Medir Caña
-        btn_medir = tk.Button(panel_botones, text="Medir Caña", command=self.medir_cana,
-                            font=("Segoe UI", 12, "bold"), bg="#22C55E", fg="#FFF", width=15)
+        btn_medir = tk.Button(panel_botones, text="Medir Caña", command=self.medir_cana, font=("Segoe UI", 12, "bold"), bg="#2dffb3", fg="#0d1117", width=15, relief="flat", activebackground="#a1a1b5", activeforeground="#0d1117")
         btn_medir.pack(side="left", padx=5)
-
-        # Botón Guardar Resultados
-        btn_guardar = tk.Button(panel_botones, text="Guardar Resultados", command=self.guardar_resultados,
-                              font=("Segoe UI", 12, "bold"), bg="#F59E42", fg="#FFF", width=15)
+        btn_guardar = tk.Button(panel_botones, text="Guardar Resultados", command=self.guardar_resultados, font=("Segoe UI", 12, "bold"), bg="#2dffb3", fg="#0d1117", width=15, relief="flat", activebackground="#a1a1b5", activeforeground="#0d1117")
         btn_guardar.pack(side="left", padx=5)
-
-        # Botón Volver al Menú Principal
-        btn_volver = tk.Button(panel_botones, text="Volver al Menú Principal", command=self.root.destroy,
-                             font=("Segoe UI", 12, "bold"), bg="#64748B", fg="#FFF", width=18)
+        btn_volver = tk.Button(panel_botones, text="Volver al Menú Principal", command=self.root.destroy, font=("Segoe UI", 12, "bold"), bg="#30363d", fg="#e6e6ef", width=18, relief="flat", activebackground="#a1a1b5", activeforeground="#0d1117")
         btn_volver.pack(side="right", padx=5)
-
-        # Mensaje inicial
         self._mostrar_mensaje("Seleccione una imagen para comenzar el análisis")
 
     def _mostrar_mensaje(self, mensaje):
         for widget in self.panel_resultados.winfo_children():
             widget.destroy()
-        label = tk.Label(self.panel_resultados, text=mensaje, font=("Segoe UI", 12), bg="#FFFFFF", fg="#64748B", wraplength=300)
+        label = tk.Label(self.panel_resultados, text=mensaje, font=("Segoe UI", 12), bg="#161b22", fg="#a1a1b5", wraplength=300)
         label.pack(pady=20)
 
     def select_image(self):

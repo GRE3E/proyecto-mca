@@ -24,37 +24,7 @@ Este proyecto implementa un sistema de clasificación de imágenes para identifi
    ```
 
 ## Estructura del Proyecto
-```
-proyecto-mca/
-├── README.md
-├── requirements.txt
-├── .gitignore
-├── checkpoints/          # Modelos entrenados
-├── data/
-│   ├── model_training/   # Datos para entrenamiento
-│   │   ├── train/       # Conjunto de entrenamiento
-│   │   │   ├── ca/      # Imágenes de caña
-│   │   │   └── no_ca/   # Imágenes que no son caña
-│   │   └── val/         # Conjunto de validación
-│   │       ├── ca/
-│   │       └── no_ca/
-│   ├── processed/       # Imágenes procesadas
-│   └── raw/            # Imágenes sin procesar
-└── src/
-    ├── app_main.py      # Menú principal (punto de entrada)
-    ├── img_proc/        # Procesamiento de imágenes
-    │   ├── edge_detection.py
-    │   ├── esc_grises.py
-    │   ├── main_processor.py
-    │   └── roi_extraction.py
-    ├── model/           # Modelos de ML
-    │   ├── inference.py
-    │   └── training.py
-    ├── gui/             # Interfaces gráficas
-    │   └── app.py
-    ├── file_manager.py
-    ├── main.py
-    └── utils.py
+
 ```
 proyecto-mca/
 ├── README.md         # Documentación del proyecto

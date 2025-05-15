@@ -12,7 +12,7 @@ def detectar_bordes(imagen):
     diff_y = np.zeros_like(luminosity)
     diff_x[:, :-1] = np.abs(luminosity[:, :-1] - luminosity[:, 1:])
     diff_y[:-1, :] = np.abs(luminosity[:-1, :] - luminosity[1:, :])
-    threshold = 40 #25 (original 10)(si sirve 40 pero desaparece parte de la imagen principal)
+    threshold = 40
     edge_mask = (diff_x + diff_y) < threshold
     output_array[edge_mask] = 0
     output_array[~edge_mask] = np.clip(luminosity[~edge_mask].astype(int) - 1, 0, 255)[:, None]

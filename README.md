@@ -13,10 +13,6 @@ Este proyecto implementa un sistema de clasificación de imágenes para identifi
 
 ## Instalación
 
-0. Instala Git LFS (solo una vez por máquina):
-   ```bash
-   git lfs install
-
 1. Clonar el repositorio:
    ```bash
    git clone https://github.com/GRE3E/proyecto-mca.git
@@ -53,48 +49,76 @@ proyecto-mca/
     │   └── roi_extraction.py
     ├── model/           # Modelos de ML
     │   ├── inference.py
-    │   ├── training.py
+    │   └── training.py
     ├── gui/             # Interfaces gráficas
     │   └── app.py
     ├── file_manager.py
     ├── main.py
     └── utils.py
 ```
+proyecto-mca/
+├── README.md         # Documentación del proyecto
+├── requirements.txt  # Dependencias del proyecto
+├── .gitignore        # Archivos y directorios a ignorar por Git
+├── checkpoints/      # Modelos entrenados guardados
+├── data/
+│   ├── model_training/ # Datos para entrenamiento y validación del modelo
+│   │   ├── train/     # Conjunto de entrenamiento
+│   │   │   ├── ca/    # Imágenes de caña
+│   │   │   └── no_ca/ # Imágenes que no son caña
+│   │   └── val/       # Conjunto de validación
+│   │       ├── ca/  
+│   │       └── no_ca/
+│   ├── processed/   # Imágenes después de aplicar procesamiento
+│   └── raw/        # Imágenes originales sin procesar
+└── src/
+    ├── app_main.py  # Menú principal para interactuar con el sistema
+    ├── img_proc/    # Módulos para procesamiento de imágenes
+    │   ├── edge_detection.py # Detección de bordes
+    │   ├── esc_grises.py     # Conversión a escala de grises
+    │   ├── main_processor.py # Lógica principal de procesamiento de imágenes
+    │   └── roi_extraction.py # Extracción de regiones de interés
+    ├── model/       # Módulos relacionados con el modelo de aprendizaje profundo
+    │   ├── inference.py    # Lógica para realizar inferencias con el modelo entrenado
+    │   └── training.py     # Lógica para entrenar el modelo
+    ├── gui/         # Módulos para la interfaz gráfica de usuario
+    │   └── app.py        # Implementación de la interfaz gráfica
+    ├── file_manager.py # Gestión de archivos y directorios
+    ├── main.py      # Punto de entrada principal del flujo de trabajo
+    └── utils.py     # Funciones de utilidad
+```
+
+## Funcionamiento del Proyecto
+
+El sistema de clasificación de caña de azúcar sigue un flujo de trabajo general que incluye los siguientes pasos:
+
+1.  **Carga de Imágenes:** Las imágenes sin procesar se cargan desde el directorio `data/raw/`.
+2.  **Procesamiento de Imágenes:** Las imágenes pasan por un pipeline de procesamiento en el módulo `img_proc/`. Esto puede incluir conversión a escala de grises, detección de bordes y extracción de regiones de interés (ROI).
+3.  **Preparación de Datos:** Para el entrenamiento, las imágenes procesadas se organizan en `data/model_training/` en conjuntos de entrenamiento y validación, separadas por clases (`ca` y `no_ca`).
+4.  **Entrenamiento del Modelo:** El módulo `model/training.py` se encarga de entrenar un modelo de aprendizaje profundo utilizando los datos preparados. Los modelos entrenados se guardan en `checkpoints/`.
+5.  **Inferencia/Clasificación:** El módulo `model/inference.py` utiliza un modelo entrenado para clasificar nuevas imágenes procesadas.
+6.  **Gestión de Archivos:** El módulo `file_manager.py` ayuda en la organización y manejo de los archivos del proyecto.
+7.  **Interfaz de Usuario:** La interfaz gráfica en `gui/app.py` permite interactuar con el sistema, posiblemente para cargar imágenes, ejecutar el procesamiento y ver los resultados de la clasificación.
+8.  **Puntos de Entrada:** El sistema puede ser ejecutado a través de `src/app_main.py` (menú principal) o `src/main.py` (flujo de trabajo principal).
+
+Este flujo permite procesar imágenes, entrenar y utilizar modelos para la clasificación de caña de azúcar.
 
 ## Uso
 
-### Menú Principal
-Para iniciar el menú principal:
-```bash
-python src/app_main.py
-```
-Desde aquí puedes acceder a:
-- Reducción de bordes
-- Entrenamiento del modelo
-- Prueba del modelo
-- RE Entrenamiento
+Para ejecutar el sistema, puedes usar los siguientes comandos:
 
-**Nota:** El modelo entrenado `best_sugarcane_model.pth` se encuentra incluido en el repositorio en la carpeta `src/model/`. Puedes usarlo directamente para probar la funcionalidad desde el menú principal.
+- **Menú principal (app_main.py):**
+  ```bash
+  python src/app_main.py
+  ```
+  Este script probablemente te presentará un menú con diferentes opciones para interactuar con el sistema.
 
-### Flujo de Procesamiento de Imágenes
-1. **Reducción de bordes:** Antes de la predicción, las imágenes pasan por un proceso de reducción de bordes para mejorar la detección y clasificación.
-2. **Clasificación:** El modelo clasifica la imagen procesada como caña o no caña.
-3. **Visualización:** Puedes ver la imagen original y la procesada, y decidir si guardar el resultado.
+- **Ejecución principal (main.py):**
+  ```bash
+  python src/main.py
+  ```
+  Este script podría ser el punto de entrada principal para una ejecución directa o un flujo de trabajo específico.
 
-### Entrenamiento del Modelo
-Desde el menú, selecciona "Entrenamiento Modelo". Se abrirá una ventana emergente donde se muestran los logs del proceso en tiempo real. El proceso maneja excepciones y muestra mensajes claros en caso de error.
-
-### RE Entrenamiento (Nuevo)
-Permite seleccionar un modelo existente mediante el gestor de archivos y reentrenarlo con nuevos datos. El progreso y los logs se muestran en una ventana emergente. Incluye botón de regreso para volver al menú principal en cualquier momento.
-
-### Clasificación de Imágenes
-Selecciona "Probar modelo" en el menú. Podrás subir una imagen nueva y el sistema indicará si es o no caña de azúcar. El flujo incluye la reducción de bordes antes de la predicción.
-
-### Detector de Bordes
-Selecciona "Bordes" en el menú para acceder a la reducción de bordes usando los módulos de procesamiento de imágenes. Puedes visualizar la imagen original y la procesada, y guardar el resultado si lo deseas. Incluye botón de regreso siempre visible.
-
-### Visualización de Logs
-Tanto el entrenamiento como el reentrenamiento muestran los logs en ventanas emergentes, permitiendo un seguimiento detallado del proceso.
 
 ### Mantenimiento
 Para limpiar archivos de caché Python:
